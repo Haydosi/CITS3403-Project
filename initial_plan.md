@@ -1,13 +1,17 @@
 # List of Pages
 
-- Sign up / Sign in
-- My money dashboard
+- User management
+    - Login, sign up
+    - Change password
+    - invite
+    - create group
+- My money dashboard - Scout
     - Set target
     - data analysis
-- Leader board
+- Leader board - Danny
     - Annomous data analysis.
         - e.g: Average monthly spent on food / recreation
-- Tool
+- Tool (Leave for later)
     - Debt Calculator
     - AI agent's advice
 
