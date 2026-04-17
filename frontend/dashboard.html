@@ -1,17 +1,1190 @@
-<!doctype html>
-<!-- My money dashboard -->
-<!-- Framework: Bootstrap -->
-<!-- 
-    Feature:
-        set target
-        data analysis.
-            Showing expenses this month.
-            render the analysis result(Computed in the backend)
-            Showing the target and current current status
-    -->
-<!-- CSS -->
-<html>
-	<head>
-		My Money Dashboard
-	</head>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyMoney — Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800&family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --surface-0: #0b0f14;
+            --surface-1: #111820;
+            --surface-2: #17202b;
+            --surface-3: #1e2a38;
+            --border-subtle: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --text-primary: #e8ecf1;
+            --text-secondary: #7a8ba3;
+            --text-muted: #4a5b70;
+            --accent-teal: #2dd4a8;
+            --accent-teal-dim: rgba(45,212,168,0.12);
+            --accent-teal-glow: rgba(45,212,168,0.25);
+            --accent-blue: #3b82f6;
+            --accent-blue-dim: rgba(59,130,246,0.12);
+            --accent-amber: #f59e0b;
+            --accent-amber-dim: rgba(245,158,11,0.12);
+            --accent-rose: #f43f5e;
+            --accent-rose-dim: rgba(244,63,94,0.12);
+            --accent-violet: #8b5cf6;
+            --accent-violet-dim: rgba(139,92,246,0.12);
+            --accent-cyan: #06b6d4;
+            --accent-cyan-dim: rgba(6,182,212,0.12);
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+            --shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px var(--border-subtle);
+            --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px var(--border-hover);
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--surface-0);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* — Background texture — */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 10% 0%, rgba(45,212,168,0.04), transparent),
+                radial-gradient(ellipse 60% 50% at 90% 100%, rgba(59,130,246,0.03), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* — Sidebar — */
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            width: 260px;
+            background: var(--surface-1);
+            border-right: 1px solid var(--border-subtle);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            transition: transform var(--transition-smooth);
+        }
+
+        .sidebar-brand {
+            padding: 28px 24px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .sidebar-brand h1 {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-brand h1 .brand-dot {
+            width: 10px; height: 10px;
+            background: var(--accent-teal);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent-teal-glow);
+            display: inline-block;
+        }
+
+        .sidebar-nav {
+            padding: 16px 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .sidebar-nav .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all var(--transition-smooth);
+        }
+
+        .sidebar-nav .nav-link i {
+            font-size: 1.15rem;
+            width: 22px;
+            text-align: center;
+        }
+
+        .sidebar-nav .nav-link:hover {
+            background: var(--surface-2);
+            color: var(--text-primary);
+        }
+
+        .sidebar-nav .nav-link.active {
+            background: var(--accent-teal-dim);
+            color: var(--accent-teal);
+        }
+
+        .sidebar-nav .nav-section-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 20px 14px 8px;
+        }
+
+        .sidebar-footer {
+            padding: 16px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .sidebar-footer .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            cursor: pointer;
+            transition: background var(--transition-smooth);
+        }
+
+        .sidebar-footer .user-pill:hover {
+            background: var(--surface-3);
+        }
+
+        .sidebar-footer .user-avatar {
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar-footer .user-info {
+            overflow: hidden;
+        }
+
+        .sidebar-footer .user-name {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar-footer .user-email {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        /* — Main Content — */
+        .main-content {
+            margin-left: 260px;
+            padding: 32px 36px 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* — Top Bar — */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .top-bar .page-title {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 1.65rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .top-bar .page-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .btn-accent {
+            background: var(--accent-teal);
+            color: #0b0f14;
+            border: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all var(--transition-smooth);
+            box-shadow: 0 0 20px var(--accent-teal-dim);
+        }
+
+        .btn-accent:hover {
+            background: #3ee8b8;
+            color: #0b0f14;
+            box-shadow: 0 0 30px var(--accent-teal-glow);
+            transform: translateY(-1px);
+        }
+
+        /* — Stat Cards — */
+        .stat-card {
+            background: var(--surface-1);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 22px 24px;
+            transition: all var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
+            opacity: 0;
+            transition: opacity var(--transition-smooth);
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-hover);
+            box-shadow: var(--shadow-card-hover);
+            transform: translateY(-2px);
+        }
+
+        .stat-card:hover::before { opacity: 1; }
+
+        .stat-card.balance::before { background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue)); }
+        .stat-card.income::before { background: var(--accent-teal); }
+        .stat-card.expenses::before { background: var(--accent-rose); }
+        .stat-card.savings::before { background: var(--accent-blue); }
+
+        .stat-card .stat-icon {
+            width: 42px; height: 42px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+        }
+
+        .stat-card.balance .stat-icon { background: var(--accent-teal-dim); color: var(--accent-teal); }
+        .stat-card.income .stat-icon { background: var(--accent-teal-dim); color: var(--accent-teal); }
+        .stat-card.expenses .stat-icon { background: var(--accent-rose-dim); color: var(--accent-rose); }
+        .stat-card.savings .stat-icon { background: var(--accent-blue-dim); color: var(--accent-blue); }
+
+        .stat-card .stat-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 6px;
+        }
+
+        .stat-card .stat-value {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 1.7rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1;
+        }
+
+        .stat-card .stat-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+            padding: 3px 8px;
+            border-radius: 20px;
+        }
+
+        .stat-change.positive { background: var(--accent-teal-dim); color: var(--accent-teal); }
+        .stat-change.negative { background: var(--accent-rose-dim); color: var(--accent-rose); }
+
+        /* — Dashboard Cards — */
+        .dash-card {
+            background: var(--surface-1);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            height: 100%;
+        }
+
+        .dash-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .dash-card-title {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        .dash-card-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: var(--surface-3);
+            color: var(--text-secondary);
+        }
+
+        /* — Donut Chart — */
+        .chart-wrapper {
+            position: relative;
+            max-width: 280px;
+            margin: 0 auto 20px;
+        }
+
+        .chart-center-label {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .chart-center-label .label-text {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .chart-center-label .label-value {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-teal);
+            letter-spacing: -0.02em;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px; height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-amount {
+            margin-left: auto;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.78rem;
+        }
+
+        /* — Targets — */
+        .target-item {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .target-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .target-item:first-child { padding-top: 0; }
+
+        .target-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .target-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .target-name .target-emoji {
+            font-size: 1.15rem;
+        }
+
+        .forecast-badge {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 3px 10px;
+            border-radius: 20px;
+            letter-spacing: 0.02em;
+        }
+
+        .forecast-badge.on-track { background: var(--accent-teal-dim); color: var(--accent-teal); }
+        .forecast-badge.at-risk { background: var(--accent-amber-dim); color: var(--accent-amber); }
+        .forecast-badge.behind { background: var(--accent-rose-dim); color: var(--accent-rose); }
+
+        .target-progress-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .target-progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--surface-3);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .target-progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .target-progress-fill.on-track { background: linear-gradient(90deg, var(--accent-teal), #34d9ae); }
+        .target-progress-fill.at-risk { background: linear-gradient(90deg, var(--accent-amber), #fbbf24); }
+        .target-progress-fill.behind { background: linear-gradient(90deg, var(--accent-rose), #fb7185); }
+
+        .target-amounts {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .target-amounts strong {
+            color: var(--text-primary);
+        }
+
+        /* — Momentum — */
+        .momentum-ring-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            padding: 10px 0;
+        }
+
+        .momentum-ring {
+            position: relative;
+            width: 120px; height: 120px;
+        }
+
+        .momentum-ring svg {
+            transform: rotate(-90deg);
+        }
+
+        .momentum-ring .ring-label {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .momentum-ring .ring-value {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            display: block;
+        }
+
+        .momentum-ring .ring-text {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .momentum-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .momentum-stat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .momentum-stat .m-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .momentum-stat .m-label {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+        }
+
+        .momentum-stat .m-value {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        /* — Transactions — */
+        .txn-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .txn-table thead th {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+            padding: 0 0 14px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .txn-table tbody td {
+            padding: 14px 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-subtle);
+            vertical-align: middle;
+        }
+
+        .txn-table tbody tr:last-child td { border-bottom: none; }
+
+        .txn-table tbody tr {
+            transition: background var(--transition-smooth);
+        }
+
+        .txn-table tbody tr:hover {
+            background: var(--surface-2);
+        }
+
+        .txn-category-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .txn-amount {
+            font-weight: 700;
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-size: 0.92rem;
+        }
+
+        .txn-amount.expense { color: var(--accent-rose); }
+        .txn-amount.income-txn { color: var(--accent-teal); }
+
+        .txn-date {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        /* — Modal — */
+        .modal-content {
+            background: var(--surface-1);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 20px 24px;
+        }
+
+        .modal-title {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            font-weight: 700;
+        }
+
+        .modal-body { padding: 24px; }
+        .modal-footer { border-top: 1px solid var(--border-subtle); padding: 16px 24px; }
+
+        .form-control, .form-select {
+            background: var(--surface-2);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            padding: 10px 14px;
+            transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--surface-2);
+            border-color: var(--accent-teal);
+            box-shadow: 0 0 0 3px var(--accent-teal-dim);
+            color: var(--text-primary);
+        }
+
+        .form-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .btn-outline-secondary {
+            border-color: var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--surface-3);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        /* — Mobile Sidebar Toggle — */
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 16px; left: 16px;
+            z-index: 200;
+            width: 40px; height: 40px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 90;
+        }
+
+        /* — Animations — */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .anim-in {
+            animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+        }
+
+        .anim-delay-1 { animation-delay: 0.06s; }
+        .anim-delay-2 { animation-delay: 0.12s; }
+        .anim-delay-3 { animation-delay: 0.18s; }
+        .anim-delay-4 { animation-delay: 0.24s; }
+        .anim-delay-5 { animation-delay: 0.30s; }
+        .anim-delay-6 { animation-delay: 0.36s; }
+
+        /* — Responsive — */
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-toggle { display: flex; }
+            .sidebar-overlay.show { display: block; }
+            .main-content { margin-left: 0; padding: 24px 16px 60px; }
+            .top-bar { padding-top: 48px; }
+        }
+
+        @media (max-width: 575.98px) {
+            .stat-card .stat-value { font-size: 1.35rem; }
+            .momentum-ring-wrapper { flex-direction: column; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar Toggle (mobile) -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+    <i class="bi bi-list"></i>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+        <h1><span class="brand-dot"></span>MyMoney</h1>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="#" class="nav-link active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="#" class="nav-link"><i class="bi bi-wallet2"></i> Transactions</a>
+        <a href="#" class="nav-link"><i class="bi bi-bullseye"></i> Targets</a>
+        <div class="nav-section-label">Social</div>
+        <a href="#" class="nav-link"><i class="bi bi-trophy"></i> Leaderboard</a>
+        <a href="#" class="nav-link"><i class="bi bi-people"></i> Groups</a>
+        <div class="nav-section-label">Tools</div>
+        <a href="#" class="nav-link"><i class="bi bi-calculator"></i> Debt Calculator</a>
+        <a href="#" class="nav-link"><i class="bi bi-robot"></i> AI Advisor</a>
+    </nav>
+    <div class="sidebar-footer">
+        <div class="user-pill">
+            <div class="user-avatar">SM</div>
+            <div class="user-info">
+                <div class="user-name">Scout M.</div>
+                <div class="user-email">scout@example.com</div>
+            </div>
+        </div>
+    </div>
+</aside>
+
+<!-- Main Content -->
+<div class="main-content">
+    <!-- Top Bar -->
+    <div class="top-bar anim-in">
+        <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-subtitle">Welcome back, Scout. Here's your financial snapshot for April 2026.</div>
+        </div>
+        <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#newTargetModal">
+            <i class="bi bi-plus-lg"></i> New Target
+        </button>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card balance anim-in anim-delay-1">
+                <div class="stat-icon"><i class="bi bi-safe"></i></div>
+                <div class="stat-label">Total Balance</div>
+                <div class="stat-value">$12,480</div>
+                <span class="stat-change positive"><i class="bi bi-arrow-up-short"></i>8.2%</span>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card income anim-in anim-delay-2">
+                <div class="stat-icon"><i class="bi bi-arrow-down-left"></i></div>
+                <div class="stat-label">Monthly Income</div>
+                <div class="stat-value">$5,200</div>
+                <span class="stat-change positive"><i class="bi bi-arrow-up-short"></i>3.1%</span>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card expenses anim-in anim-delay-3">
+                <div class="stat-icon"><i class="bi bi-arrow-up-right"></i></div>
+                <div class="stat-label">Monthly Expenses</div>
+                <div class="stat-value">$3,420</div>
+                <span class="stat-change negative"><i class="bi bi-arrow-up-short"></i>5.7%</span>
+            </div>
+        </div>
+        <div class="col-xl-3 col-sm-6">
+            <div class="stat-card savings anim-in anim-delay-4">
+                <div class="stat-icon"><i class="bi bi-piggy-bank"></i></div>
+                <div class="stat-label">Monthly Savings</div>
+                <div class="stat-value">$1,780</div>
+                <span class="stat-change positive"><i class="bi bi-arrow-up-short"></i>12.4%</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts + Targets Row -->
+    <div class="row g-3 mb-4">
+        <!-- Donut Chart -->
+        <div class="col-lg-5">
+            <div class="dash-card anim-in anim-delay-4">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">Expense Breakdown</div>
+                    <span class="dash-card-badge">April 2026</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="expenseDonut"></canvas>
+                    <div class="chart-center-label">
+                        <span class="label-text">Saved</span>
+                        <span class="label-value">$1,780</span>
+                    </div>
+                </div>
+                <div class="legend-grid" id="chartLegend"></div>
+            </div>
+        </div>
+
+        <!-- Savings Targets -->
+        <div class="col-lg-7">
+            <div class="dash-card anim-in anim-delay-5">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">Savings Targets</div>
+                    <span class="dash-card-badge" id="targetsCount"></span>
+                </div>
+                <div id="targetsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Momentum + Transactions Row -->
+    <div class="row g-3">
+        <!-- Monthly Momentum -->
+        <div class="col-lg-4">
+            <div class="dash-card anim-in anim-delay-5">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">Monthly Momentum</div>
+                    <span class="dash-card-badge">April</span>
+                </div>
+                <div class="momentum-ring-wrapper">
+                    <div class="momentum-ring">
+                        <svg width="120" height="120" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="var(--surface-3)" stroke-width="10"/>
+                            <circle id="momentumArc" cx="60" cy="60" r="50" fill="none" stroke="var(--accent-teal)" stroke-width="10" stroke-linecap="round"
+                                stroke-dasharray="0 314" />
+                        </svg>
+                        <div class="ring-label">
+                            <span class="ring-value" style="color: var(--accent-teal)" id="momentumPct">0%</span>
+                            <span class="ring-text">achieved</span>
+                        </div>
+                    </div>
+                    <div class="momentum-stats">
+                        <div class="momentum-stat">
+                            <span class="m-dot" style="background: var(--accent-blue)"></span>
+                            <span class="m-label">Targets Set</span>
+                            <span class="m-value" id="momentumSet">—</span>
+                        </div>
+                        <div class="momentum-stat">
+                            <span class="m-dot" style="background: var(--accent-teal)"></span>
+                            <span class="m-label">On Track</span>
+                            <span class="m-value" id="momentumOnTrack">—</span>
+                        </div>
+                        <div class="momentum-stat">
+                            <span class="m-dot" style="background: var(--accent-amber)"></span>
+                            <span class="m-label">At Risk</span>
+                            <span class="m-value" id="momentumAtRisk">—</span>
+                        </div>
+                        <div class="momentum-stat">
+                            <span class="m-dot" style="background: var(--accent-rose)"></span>
+                            <span class="m-label">Behind</span>
+                            <span class="m-value" id="momentumBehind">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="col-lg-8">
+            <div class="dash-card anim-in anim-delay-6">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">Recent Transactions</div>
+                    <a href="#" style="font-size:0.82rem; color: var(--accent-teal); text-decoration: none; font-weight: 600;">View All <i class="bi bi-arrow-right"></i></a>
+                </div>
+                <div class="table-responsive">
+                    <table class="txn-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Category</th>
+                                <th>Description</th>
+                                <th class="text-end">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="txnBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New Target Modal -->
+<div class="modal fade" id="newTargetModal" tabindex="-1" aria-labelledby="newTargetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="newTargetModalLabel"><i class="bi bi-bullseye me-2"></i>Set New Target</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newTargetForm">
+                    <div class="mb-3">
+                        <label for="targetName" class="form-label">Target Name</label>
+                        <input type="text" class="form-control" id="targetName" placeholder="e.g. Summer Trip" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="targetAmount" class="form-label">Target Amount ($)</label>
+                        <input type="number" class="form-control" id="targetAmount" placeholder="2000" min="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="targetDeadline" class="form-label">Deadline</label>
+                        <input type="date" class="form-control" id="targetDeadline" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="targetEmoji" class="form-label">Icon (emoji)</label>
+                        <select class="form-select" id="targetEmoji">
+                            <option value="🎯">🎯 General</option>
+                            <option value="✈️">✈️ Travel</option>
+                            <option value="💻">💻 Tech</option>
+                            <option value="🏠">🏠 Home</option>
+                            <option value="🚗">🚗 Auto</option>
+                            <option value="🛡️">🛡️ Safety Net</option>
+                            <option value="🎓">🎓 Education</option>
+                            <option value="💍">💍 Special</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-accent" id="saveTargetBtn">
+                    <i class="bi bi-check-lg"></i> Create Target
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+// ─── Mock Data ───────────────────────────────────────────────
+const EXPENSES = [
+    { category: 'Dining',        amount: 620,  color: '#f43f5e', icon: 'bi-cup-hot' },
+    { category: 'Groceries',     amount: 480,  color: '#f59e0b', icon: 'bi-basket' },
+    { category: 'Transport',     amount: 350,  color: '#3b82f6', icon: 'bi-bus-front' },
+    { category: 'Utilities',     amount: 290,  color: '#8b5cf6', icon: 'bi-lightning' },
+    { category: 'Entertainment', amount: 410,  color: '#06b6d4', icon: 'bi-controller' },
+    { category: 'Shopping',      amount: 520,  color: '#ec4899', icon: 'bi-bag' },
+    { category: 'Health',        amount: 280,  color: '#10b981', icon: 'bi-heart-pulse' },
+    { category: 'Other',         amount: 470,  color: '#64748b', icon: 'bi-three-dots' },
+];
+
+const TARGETS = [
+    { name: 'Summer Trip',    emoji: '✈️', current: 1400, goal: 2000, status: 'on-track', deadline: '2026-07-01' },
+    { name: 'New Laptop',     emoji: '💻', current: 820,  goal: 1500, status: 'at-risk',  deadline: '2026-06-15' },
+    { name: 'Emergency Fund', emoji: '🛡️', current: 3200, goal: 5000, status: 'on-track', deadline: '2026-12-31' },
+    { name: 'Course Fee',     emoji: '🎓', current: 150,  goal: 800,  status: 'behind',   deadline: '2026-05-20' },
+];
+
+const TRANSACTIONS = [
+    { date: '2026-04-14', category: 'Dining',        desc: 'Sushi World',           amount: -42.50, color: '#f43f5e' },
+    { date: '2026-04-13', category: 'Transport',     desc: 'Uber to Campus',        amount: -18.00, color: '#3b82f6' },
+    { date: '2026-04-13', category: 'Groceries',     desc: 'Woolworths',            amount: -67.30, color: '#f59e0b' },
+    { date: '2026-04-12', category: 'Entertainment', desc: 'Spotify Premium',       amount: -12.99, color: '#06b6d4' },
+    { date: '2026-04-12', category: 'Shopping',      desc: 'Amazon — USB-C Hub',    amount: -35.00, color: '#ec4899' },
+    { date: '2026-04-11', category: 'Utilities',     desc: 'Electricity Bill',      amount: -142.00,color: '#8b5cf6' },
+    { date: '2026-04-10', category: 'Health',        desc: 'Pharmacy',              amount: -24.50, color: '#10b981' },
+];
+
+// ─── Expense Donut Chart ─────────────────────────────────────
+const ctx = document.getElementById('expenseDonut').getContext('2d');
+new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: EXPENSES.map(e => e.category),
+        datasets: [{
+            data: EXPENSES.map(e => e.amount),
+            backgroundColor: EXPENSES.map(e => e.color),
+            borderColor: 'transparent',
+            borderWidth: 0,
+            hoverBorderColor: '#fff',
+            hoverBorderWidth: 2,
+            spacing: 3,
+            borderRadius: 4,
+        }]
+    },
+    options: {
+        cutout: '68%',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(17,24,32,0.95)',
+                titleColor: '#e8ecf1',
+                bodyColor: '#7a8ba3',
+                borderColor: 'rgba(255,255,255,0.08)',
+                borderWidth: 1,
+                cornerRadius: 10,
+                padding: 12,
+                bodyFont: { family: 'Plus Jakarta Sans' },
+                titleFont: { family: 'Plus Jakarta Sans', weight: 600 },
+                callbacks: {
+                    label: (ctx) => ` $${ctx.parsed.toLocaleString()}`
+                }
+            }
+        },
+        animation: {
+            animateRotate: true,
+            duration: 1200,
+            easing: 'easeOutQuart',
+        }
+    }
+});
+
+// Legend
+const legendEl = document.getElementById('chartLegend');
+EXPENSES.forEach(e => {
+    legendEl.innerHTML += `
+        <div class="legend-item">
+            <span class="legend-dot" style="background:${e.color}"></span>
+            ${e.category}
+            <span class="legend-amount">$${e.amount}</span>
+        </div>`;
+});
+
+// ─── Targets ─────────────────────────────────────────────────
+const targetsList = document.getElementById('targetsList');
+const statusLabel = { 'on-track': 'On Track', 'at-risk': 'At Risk', 'behind': 'Behind' };
+
+document.getElementById('targetsCount').textContent = `${TARGETS.length} active`;
+
+TARGETS.forEach(t => {
+    const pct = Math.round((t.current / t.goal) * 100);
+    targetsList.innerHTML += `
+        <div class="target-item">
+            <div class="target-header">
+                <span class="target-name">
+                    <span class="target-emoji">${t.emoji}</span>
+                    ${t.name}
+                </span>
+                <span class="forecast-badge ${t.status}">${statusLabel[t.status]}</span>
+            </div>
+            <div class="target-progress-row">
+                <div class="target-progress-bar">
+                    <div class="target-progress-fill ${t.status}" style="width: 0%" data-width="${pct}%"></div>
+                </div>
+                <span class="target-amounts"><strong>$${t.current.toLocaleString()}</strong> / $${t.goal.toLocaleString()}</span>
+            </div>
+        </div>`;
+});
+
+// Animate progress bars
+setTimeout(() => {
+    document.querySelectorAll('.target-progress-fill').forEach(bar => {
+        bar.style.width = bar.dataset.width;
+    });
+}, 300);
+
+// ─── Monthly Momentum ───────────────────────────────────────
+const onTrack = TARGETS.filter(t => t.status === 'on-track').length;
+const atRisk = TARGETS.filter(t => t.status === 'at-risk').length;
+const behind = TARGETS.filter(t => t.status === 'behind').length;
+const pctAchieved = Math.round((onTrack / TARGETS.length) * 100);
+
+document.getElementById('momentumSet').textContent = TARGETS.length;
+document.getElementById('momentumOnTrack').textContent = onTrack;
+document.getElementById('momentumAtRisk').textContent = atRisk;
+document.getElementById('momentumBehind').textContent = behind;
+
+// Animate ring
+const circumference = 2 * Math.PI * 50;
+setTimeout(() => {
+    const arc = document.getElementById('momentumArc');
+    const dashLen = (pctAchieved / 100) * circumference;
+    arc.style.transition = 'stroke-dasharray 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    arc.setAttribute('stroke-dasharray', `${dashLen} ${circumference}`);
+    document.getElementById('momentumPct').textContent = `${pctAchieved}%`;
+}, 400);
+
+// ─── Transactions ────────────────────────────────────────────
+const txnBody = document.getElementById('txnBody');
+TRANSACTIONS.forEach(t => {
+    const isExpense = t.amount < 0;
+    const formatted = isExpense
+        ? `-$${Math.abs(t.amount).toFixed(2)}`
+        : `+$${t.amount.toFixed(2)}`;
+    const dateObj = new Date(t.date + 'T00:00:00');
+    const dateStr = dateObj.toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    txnBody.innerHTML += `
+        <tr>
+            <td class="txn-date">${dateStr}</td>
+            <td>
+                <span class="txn-category-pill" style="background:${t.color}20; color:${t.color}">
+                    ${t.category}
+                </span>
+            </td>
+            <td>${t.desc}</td>
+            <td class="text-end">
+                <span class="txn-amount ${isExpense ? 'expense' : 'income-txn'}">${formatted}</span>
+            </td>
+        </tr>`;
+});
+
+// ─── Sidebar Toggle (mobile) ────────────────────────────────
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+const toggle = document.getElementById('sidebarToggle');
+
+toggle.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+});
+overlay.addEventListener('click', () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('show');
+});
+
+// ─── New Target Form ─────────────────────────────────────────
+document.getElementById('saveTargetBtn').addEventListener('click', () => {
+    const form = document.getElementById('newTargetForm');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    const name = document.getElementById('targetName').value;
+    const amount = parseInt(document.getElementById('targetAmount').value);
+    const deadline = document.getElementById('targetDeadline').value;
+    const emoji = document.getElementById('targetEmoji').value;
+
+    // Add to list
+    const targetsList = document.getElementById('targetsList');
+    const newItem = document.createElement('div');
+    newItem.className = 'target-item';
+    newItem.innerHTML = `
+        <div class="target-header">
+            <span class="target-name">
+                <span class="target-emoji">${emoji}</span>
+                ${name}
+            </span>
+            <span class="forecast-badge on-track">On Track</span>
+        </div>
+        <div class="target-progress-row">
+            <div class="target-progress-bar">
+                <div class="target-progress-fill on-track" style="width: 0%"></div>
+            </div>
+            <span class="target-amounts"><strong>$0</strong> / $${amount.toLocaleString()}</span>
+        </div>`;
+    targetsList.appendChild(newItem);
+
+    // Update count
+    const countBadge = document.getElementById('targetsCount');
+    const currentCount = parseInt(countBadge.textContent) || TARGETS.length;
+    countBadge.textContent = `${currentCount + 1} active`;
+
+    // Reset & close
+    form.reset();
+    bootstrap.Modal.getInstance(document.getElementById('newTargetModal')).hide();
+});
+</script>
+</body>
 </html>
