@@ -292,6 +292,7 @@ body::before {
     overflow: hidden;
 }
 
+/* Hidden top-border accent — revealed on hover */
 .stat-card::before {
     content: '';
     position: absolute;
@@ -313,6 +314,7 @@ body::before {
     opacity: 1;
 }
 
+/* Per-variant top-border colours */
 .stat-card.balance::before {
     background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue));
 }
@@ -329,6 +331,7 @@ body::before {
     background: var(--accent-blue);
 }
 
+/* Per-variant top-border colours */
 .stat-card .stat-icon {
     width: 42px;
     height: 42px;
@@ -377,6 +380,7 @@ body::before {
     line-height: 1;
 }
 
+/* Percentage-change pill shown below the value */
 .stat-card .stat-change {
     display: inline-flex;
     align-items: center;
@@ -398,7 +402,9 @@ body::before {
     color: var(--accent-rose);
 }
 
-/* — Dashboard Cards — */
+/* ============================================================
+   7. Dashboard Cards  (generic content panel used throughout)
+============================================================ */
 .dash-card {
     background: var(--surface-1);
     border: 1px solid var(--border-subtle);
@@ -421,6 +427,7 @@ body::before {
     letter-spacing: -0.01em;
 }
 
+/* Small contextual label (e.g. "April 2026") in the card header */
 .dash-card-badge {
     font-size: 0.72rem;
     font-weight: 600;
