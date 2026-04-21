@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyMoney - Leaderboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Bricolage+Grotesque:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./leaderboard.css">
+</head>
+<body>
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar"><i class="bi bi-list"></i></button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Collapsible left navigation used across dashboard-style pages -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><h1><span class="brand-dot"></span>MyMoney</h1></div>
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="#" class="nav-link"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="#" class="nav-link"><i class="bi bi-wallet2"></i> Transactions</a>
+        <a href="#" class="nav-link"><i class="bi bi-bullseye"></i> Targets</a>
+        <div class="nav-section-label">Social</div>
+        <a href="#" class="nav-link active"><i class="bi bi-trophy"></i> Leaderboard</a>
+        <a href="#" class="nav-link"><i class="bi bi-people"></i> Groups</a>
+    </nav>
+</aside>
+
+<!-- Main leaderboard content area -->
+<main class="main-content">
+    <section class="top-bar anim-in">
+        <div>
+            <h2 class="page-title">Savings Leaderboard</h2>
+            <p class="page-subtitle">Sections: choose World or Family.</p>
+        </div>
+        <div class="dash-card-badge" id="lastUpdated">Updated just now</div>
+    </section>
+
+    <!-- Section toggle buttons (World vs Family leaderboard) -->
+    <section class="dash-card mb-4 anim-in anim-delay-1">
+        <div class="section-switcher">
+            <button id="worldTabBtn" class="section-tab active" type="button">
+                <i class="bi bi-globe2"></i> World Top Saver
+            </button>
+            <button id="familyTabBtn" class="section-tab" type="button">
+                <i class="bi bi-people-fill"></i> Family Saving
+            </button>
+        </div>
+    </section>
+
+    <!-- World leaderboard cards are injected by leaderboard.js -->
+    <section class="dash-card mb-4 anim-in anim-delay-2" id="worldSection">
+        <div class="dash-card-header">
+            <h3 class="dash-card-title">World Top Saver</h3>
+            <span class="dash-card-badge">Global</span>
+        </div>
+        <div class="row g-3" id="topSaversCards"></div>
+    </section>
+
+    <!-- Family leaderboard table rows are injected by leaderboard.js -->
+    <section class="dash-card anim-in anim-delay-3 hidden-section" id="familySection">
+        <div class="dash-card-header">
+            <h3 class="dash-card-title">Family Saving</h3>
+            <span class="dash-card-badge" id="familyCount">0 members</span>
+        </div>
+        <div class="table-responsive">
+            <table class="txn-table leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Family Member</th>
+                        <th class="text-end">Saved</th>
+                        <th class="text-end">Share</th>
+                        <th class="text-end">Streak</th>
+                        <th class="text-end">Wins</th>
+                    </tr>
+                </thead>
+                <tbody id="familyLeaderboardBody"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script src="./leaderboard.js"></script>
+</body>
+</html>
