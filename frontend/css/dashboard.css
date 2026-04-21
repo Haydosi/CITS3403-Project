@@ -47,6 +47,9 @@ so they can be changed in one place.
     --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ============================================================
+   2. Base / Reset
+============================================================ */
 * {
     margin: 0;
     padding: 0;
@@ -61,7 +64,7 @@ body {
     overflow-x: hidden;
 }
 
-/* — Background texture — */
+/* Subtle radial-gradient texture layered behind all content */
 body::before {
     content: '';
     position: fixed;
@@ -72,7 +75,7 @@ body::before {
     z-index: 0;
 }
 
-/* — Sidebar — */
+/* Subtle radial-gradient texture layered behind all content */
 .sidebar {
     position: fixed;
     top: 0;
@@ -87,6 +90,8 @@ body::before {
     transition: transform var(--transition-smooth);
 }
 
+/* 3a. Brand / Logo
+-------------------------------------------------------------- */
 .sidebar-brand {
     padding: 28px 24px 24px;
     border-bottom: 1px solid var(--border-subtle);
@@ -103,6 +108,7 @@ body::before {
     gap: 10px;
 }
 
+/* Glowing teal dot next to the brand name */
 .sidebar-brand h1 .brand-dot {
     width: 10px;
     height: 10px;
@@ -149,6 +155,7 @@ body::before {
     color: var(--accent-teal);
 }
 
+/* Fixed-width icon column keeps labels aligned */
 .sidebar-nav .nav-section-label {
     font-size: 0.7rem;
     font-weight: 700;
@@ -158,6 +165,8 @@ body::before {
     padding: 20px 14px 8px;
 }
 
+/* 3c. Footer / User pill
+-------------------------------------------------------------- */
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid var(--border-subtle);
@@ -178,6 +187,7 @@ body::before {
     background: var(--surface-3);
 }
 
+/* Gradient avatar circle showing user initials */
 .sidebar-footer .user-avatar {
     width: 34px;
     height: 34px;
