@@ -504,7 +504,11 @@ body::before {
     font-size: 0.78rem;
 }
 
-/* — Targets — */
+/* ============================================================
+   9. Savings Targets
+   List of goal rows with animated progress bars.
+   Bar width is set to 0 on render and animated via JS timeout.
+============================================================ */
 .target-item {
     padding: 16px 0;
     border-bottom: 1px solid var(--border-subtle);
@@ -538,6 +542,7 @@ body::before {
     font-size: 1.15rem;
 }
 
+/* Status badge — colours indicate forecast health */
 .forecast-badge {
     font-size: 0.7rem;
     font-weight: 700;
@@ -575,6 +580,7 @@ body::before {
     overflow: hidden;
 }
 
+/* Status badge — colours indicate forecast health */
 .target-progress-fill {
     height: 100%;
     border-radius: 4px;
@@ -593,6 +599,7 @@ body::before {
     background: linear-gradient(90deg, var(--accent-rose), #fb7185);
 }
 
+/* "current / goal" amounts shown to the right of the bar */
 .target-amounts {
     font-size: 0.78rem;
     color: var(--text-secondary);
