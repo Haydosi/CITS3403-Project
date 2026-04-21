@@ -7,6 +7,10 @@ app = Flask(__name__)
 def dashboard():
     return render_template("dashboard.html")
 
+@app.route("/leaderboard")
+def leaderboard():
+    return render_template("leaderboard.html")
+
 
 # makes file run as program for starting via running directly
 if __name__ == "__main__":

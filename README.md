@@ -20,3 +20,5 @@ source .venv/bin/activate
 install anything that's needed from requirements.txt
 pip3 install -r python_requirements.txt
 
+run/test with:
+flask --app app run --debug
