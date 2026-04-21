@@ -6,4 +6,4 @@ Repo for Project
 | -------- | --------     | ---------- |
 | 24729742 | Scout Wu     | Exusiai101 |
 | 24214482 | Hayden Ivins | Haydosi    |
-|          |              |            |
+| 24256619 | Danny Nguyen |ThanhBinh5104|
