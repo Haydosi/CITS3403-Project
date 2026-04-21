@@ -1,3 +1,4 @@
+// Demo leaderboard data source used by both World and Family sections.
 const PLAYERS = [
     { name: "Aria K.", saved: 5120, streak: 14, wins: 5, avatar: "AK", family: false },
     { name: "Noah P.", saved: 4760, streak: 10, wins: 2, avatar: "NP", family: false },
@@ -16,13 +17,16 @@ const familyTabBtn = document.getElementById("familyTabBtn");
 const worldSection = document.getElementById("worldSection");
 const familySection = document.getElementById("familySection");
 
+// Tracks which section is currently visible in the UI.
 let activeSection = "world";
 
 function currency(amount) {
+    // Format amounts as AUD-style currency text (e.g. 5,120).
     return `$${amount.toLocaleString("en-AU")}`;
 }
 
 function renderTopSavers() {
+    // Build the top-3 global saver cards.
     const sorted = [...PLAYERS].sort((a, b) => b.saved - a.saved);
     const topThree = sorted.slice(0, 3);
     const totalTop = topThree.reduce((sum, person) => sum + person.saved, 0);
@@ -49,6 +53,7 @@ function renderTopSavers() {
 }
 
 function renderFamilySection() {
+    // Build the family-only ranking table.
     const familyPlayers = PLAYERS.filter((player) => player.family).sort((a, b) => b.saved - a.saved);
     const familyTotal = familyPlayers.reduce((sum, player) => sum + player.saved, 0);
     familyCount.textContent = `${familyPlayers.length} members`;
@@ -74,6 +79,7 @@ function renderFamilySection() {
 }
 
 function render() {
+    // Initial/full refresh render used on page load.
     renderTopSavers();
     renderFamilySection();
     updateSectionView();
@@ -81,6 +87,7 @@ function render() {
 }
 
 function updateSectionView() {
+    // Show one section at a time and keep tab button states in sync.
     const showWorld = activeSection === "world";
     worldSection.classList.toggle("hidden-section", !showWorld);
     familySection.classList.toggle("hidden-section", showWorld);
@@ -88,6 +95,7 @@ function updateSectionView() {
     familyTabBtn.classList.toggle("active", !showWorld);
 }
 
+// Mobile sidebar open/close behaviour.
 const sidebar = document.getElementById("sidebar");
 const overlay = document.getElementById("sidebarOverlay");
 const toggle = document.getElementById("sidebarToggle");
@@ -100,6 +108,7 @@ overlay.addEventListener("click", () => {
     overlay.classList.remove("show");
 });
 
+// Section tab handlers only switch visible content.
 worldTabBtn.addEventListener("click", () => {
     activeSection = "world";
     updateSectionView();
