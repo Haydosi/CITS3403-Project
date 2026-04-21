@@ -2,11 +2,13 @@
 
 Repo for Project
 
-| UWA id   | Name         | Github ID  |
-| -------- | --------     | ---------- |
-| 24729742 | Scout Wu     | Exusiai101 |
-| 24214482 | Hayden Ivins | Haydosi    |
-|          |              |            |
+| UWA id   | Name         | Github ID     |
+| -------- | --------     | ----------    |
+| 24729742 | Scout Wu     | Exusiai101    |
+| 24214482 | Hayden Ivins | Haydosi       |
+| 24256619 | Danny Nguyen | ThanhBinh5104 |
+
+
 
 
 use python venv 
@@ -17,3 +19,4 @@ source .venv/bin/activate
 
 install anything that's needed from requirements.txt
 pip3 install -r python_requirements.txt
+
