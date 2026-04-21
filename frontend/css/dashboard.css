@@ -610,7 +610,11 @@ body::before {
     color: var(--text-primary);
 }
 
-/* — Momentum — */
+/* ============================================================
+   10. Monthly Momentum ring
+   SVG circle stroked with stroke-dasharray to represent progress
+   The arc is rotated -90deg so it starts from the top.
+============================================================ */
 .momentum-ring-wrapper {
     display: flex;
     align-items: center;
@@ -625,10 +629,11 @@ body::before {
     height: 120px;
 }
 
+/* Start arc from 12 o'clock position */
 .momentum-ring svg {
     transform: rotate(-90deg);
 }
-
+/* Start arc from 12 o'clock position */
 .momentum-ring .ring-label {
     position: absolute;
     top: 50%;
@@ -649,7 +654,7 @@ body::before {
     color: var(--text-muted);
     font-weight: 600;
 }
-
+/* Stat rows beside the ring (targets set / on-track / at-risk / behind) */
 .momentum-stats {
     display: flex;
     flex-direction: column;
@@ -661,7 +666,7 @@ body::before {
     align-items: center;
     gap: 10px;
 }
-
+/* Stat rows beside the ring (targets set / on-track / at-risk / behind) */
 .momentum-stat .m-dot {
     width: 10px;
     height: 10px;
