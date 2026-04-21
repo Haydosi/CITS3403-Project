@@ -633,6 +633,7 @@ body::before {
 .momentum-ring svg {
     transform: rotate(-90deg);
 }
+
 /* Start arc from 12 o'clock position */
 .momentum-ring .ring-label {
     position: absolute;
@@ -654,6 +655,7 @@ body::before {
     color: var(--text-muted);
     font-weight: 600;
 }
+
 /* Stat rows beside the ring (targets set / on-track / at-risk / behind) */
 .momentum-stats {
     display: flex;
@@ -666,6 +668,7 @@ body::before {
     align-items: center;
     gap: 10px;
 }
+
 /* Stat rows beside the ring (targets set / on-track / at-risk / behind) */
 .momentum-stat .m-dot {
     width: 10px;
@@ -685,7 +688,9 @@ body::before {
     margin-left: auto;
 }
 
-/* — Transactions — */
+/* ============================================================
+   11. Transactions table
+============================================================ */
 .txn-table {
     width: 100%;
     border-collapse: separate;
@@ -750,7 +755,10 @@ body::before {
     font-size: 0.8rem;
 }
 
-/* — Modal — */
+/* ============================================================
+   12. Modal & Form overrides
+   Override Bootstrap's default modal colours to match the dark theme.
+============================================================ */
 .modal-content {
     background: var(--surface-1);
     border: 1px solid var(--border-subtle);
@@ -811,7 +819,10 @@ body::before {
     color: var(--text-primary);
 }
 
-/* — Mobile Sidebar Toggle — */
+/* ============================================================
+   12. Modal & Form overrides
+   Override Bootstrap's default modal colours to match the dark theme.
+============================================================ */
 .sidebar-toggle {
     display: none;
     position: fixed;
@@ -838,7 +849,10 @@ body::before {
     z-index: 90;
 }
 
-/* — Animations — */
+/* ============================================================
+   14. Animations
+   .anim-in triggers fadeInUp; stagger siblings with .anim-delay-N.
+============================================================ */
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -878,7 +892,10 @@ body::before {
     animation-delay: 0.36s;
 }
 
-/* — Responsive — */
+/* ============================================================
+   14. Animations
+   .anim-in triggers fadeInUp; stagger siblings with .anim-delay-N.
+============================================================ */
 @media (max-width: 991.98px) {
     .sidebar {
         transform: translateX(-100%);
@@ -901,11 +918,13 @@ body::before {
         padding: 24px 16px 60px;
     }
 
+    /* Extra top padding clears the floating hamburger button */
     .top-bar {
         padding-top: 48px;
     }
 }
 
+/* Extra top padding clears the floating hamburger button */
 @media (max-width: 575.98px) {
     .stat-card .stat-value {
         font-size: 1.35rem;
