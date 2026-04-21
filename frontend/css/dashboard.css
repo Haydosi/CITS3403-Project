@@ -437,13 +437,18 @@ body::before {
     color: var(--text-secondary);
 }
 
-/* — Donut Chart — */
+/* ============================================================
+   8. Donut Chart & Legend
+   Chart.js canvas sits inside .chart-wrapper; the centred label
+   is absolutely positioned on top of the canvas hole.
+============================================================ */
 .chart-wrapper {
     position: relative;
     max-width: 280px;
     margin: 0 auto 20px;
 }
 
+/* Centred "Saved / $X" label rendered over the donut hole */
 .chart-center-label {
     position: absolute;
     top: 50%;
@@ -469,6 +474,7 @@ body::before {
     letter-spacing: -0.02em;
 }
 
+/* Centred "Saved / $X" label rendered over the donut hole */
 .legend-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -490,6 +496,7 @@ body::before {
     flex-shrink: 0;
 }
 
+/* Amount pushed to the right of each legend row */
 .legend-amount {
     margin-left: auto;
     font-weight: 600;
