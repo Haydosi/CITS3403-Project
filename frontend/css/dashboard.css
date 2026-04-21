@@ -220,7 +220,10 @@ body::before {
     color: var(--text-muted);
 }
 
-/* — Main Content — */
+/* ============================================================
+   4. Main Content
+   Offset by sidebar width on desktop; resets to full-width on mo
+============================================================ */
 .main-content {
     margin-left: 260px;
     padding: 32px 36px 60px;
@@ -228,7 +231,10 @@ body::before {
     z-index: 1;
 }
 
-/* — Top Bar — */
+/* ============================================================
+   4. Main Content
+   Offset by sidebar width on desktop; resets to full-width on mo
+============================================================ */
 .top-bar {
     display: flex;
     align-items: center;
@@ -249,6 +255,7 @@ body::before {
     margin-top: 2px;
 }
 
+/* Primary CTA button — teal fill, dark text for contrast */
 .btn-accent {
     background: var(--accent-teal);
     color: #0b0f14;
@@ -271,7 +278,10 @@ body::before {
     transform: translateY(-1px);
 }
 
-/* — Stat Cards — */
+/* ============================================================
+   6. Stat Cards  (summary row — Balance / Income / Expenses / Saving
+   Each card has a 3px coloured top bar that fades in on hover.
+============================================================ */
 .stat-card {
     background: var(--surface-1);
     border: 1px solid var(--border-subtle);
