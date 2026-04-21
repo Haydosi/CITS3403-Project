@@ -1,0 +1,937 @@
+/* ============================================================
+1. CSS Custom Properties
+All colours, radii, shadows and transitions are defined here
+so they can be changed in one place.
+============================================================ */
+:root {
+    /* Surface layers — darkest (0) to lightest (3) */
+    --surface-0: #0b0f14;
+    --surface-1: #111820;
+    --surface-2: #17202b;
+    --surface-3: #1e2a38;
+
+    /* Border colours */
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(255, 255, 255, 0.12);
+
+    /* Text hierarchy */
+    --text-primary: #e8ecf1;
+    --text-secondary: #7a8ba3;
+    --text-muted: #4a5b70;
+
+    /* Accent palette — each colour has a full and a dim (low-opacity) variant */
+    --accent-teal: #2dd4a8;
+    --accent-teal-dim: rgba(45, 212, 168, 0.12);
+    --accent-teal-glow: rgba(45, 212, 168, 0.25);
+    --accent-blue: #3b82f6;
+    --accent-blue-dim: rgba(59, 130, 246, 0.12);
+    --accent-amber: #f59e0b;
+    --accent-amber-dim: rgba(245, 158, 11, 0.12);
+    --accent-rose: #f43f5e;
+    --accent-rose-dim: rgba(244, 63, 94, 0.12);
+    --accent-violet: #8b5cf6;
+    --accent-violet-dim: rgba(139, 92, 246, 0.12);
+    --accent-cyan: #06b6d4;
+    --accent-cyan-dim: rgba(6, 182, 212, 0.12);
+
+    /* Border radii */
+    --radius-lg: 16px;
+    --radius-md: 12px;
+    --radius-sm: 8px;
+
+    /* Box shadows */
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--border-subtle);
+    --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border-hover);
+
+    /* Shared easing curve used across transitions */
+    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================================
+   2. Base / Reset
+============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background: var(--surface-0);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Subtle radial-gradient texture layered behind all content */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 10% 0%, rgba(45, 212, 168, 0.04), transparent),
+    radial-gradient(ellipse 60% 50% at 90% 100%, rgba(59, 130, 246, 0.03), transparent);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Subtle radial-gradient texture layered behind all content */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px;
+    background: var(--surface-1);
+    border-right: 1px solid var(--border-subtle);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    transition: transform var(--transition-smooth);
+}
+
+/* 3a. Brand / Logo
+-------------------------------------------------------------- */
+.sidebar-brand {
+    padding: 28px 24px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-brand h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1.5rem;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Glowing teal dot next to the brand name */
+.sidebar-brand h1 .brand-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--accent-teal);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent-teal-glow);
+    display: inline-block;
+}
+
+.sidebar-nav {
+    padding: 16px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all var(--transition-smooth);
+}
+
+.sidebar-nav .nav-link i {
+    font-size: 1.15rem;
+    width: 22px;
+    text-align: center;
+}
+
+.sidebar-nav .nav-link:hover {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
+.sidebar-nav .nav-link.active {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+/* Fixed-width icon column keeps labels aligned */
+.sidebar-nav .nav-section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 20px 14px 8px;
+}
+
+/* 3c. Footer / User pill
+-------------------------------------------------------------- */
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.sidebar-footer .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: background var(--transition-smooth);
+}
+
+.sidebar-footer .user-pill:hover {
+    background: var(--surface-3);
+}
+
+/* Gradient avatar circle showing user initials */
+.sidebar-footer .user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.sidebar-footer .user-info {
+    overflow: hidden;
+}
+
+.sidebar-footer .user-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-footer .user-email {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   4. Main Content
+   Offset by sidebar width on desktop; resets to full-width on mo
+============================================================ */
+.main-content {
+    margin-left: 260px;
+    padding: 32px 36px 60px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ============================================================
+   4. Main Content
+   Offset by sidebar width on desktop; resets to full-width on mo
+============================================================ */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+}
+
+.top-bar .page-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.65rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.top-bar .page-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Primary CTA button — teal fill, dark text for contrast */
+.btn-accent {
+    background: var(--accent-teal);
+    color: #0b0f14;
+    border: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all var(--transition-smooth);
+    box-shadow: 0 0 20px var(--accent-teal-dim);
+}
+
+.btn-accent:hover {
+    background: #3ee8b8;
+    color: #0b0f14;
+    box-shadow: 0 0 30px var(--accent-teal-glow);
+    transform: translateY(-1px);
+}
+
+/* ============================================================
+   6. Stat Cards  (summary row — Balance / Income / Expenses / Saving
+   Each card has a 3px coloured top bar that fades in on hover.
+============================================================ */
+.stat-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    transition: all var(--transition-smooth);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Hidden top-border accent — revealed on hover */
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    opacity: 0;
+    transition: opacity var(--transition-smooth);
+}
+
+.stat-card:hover {
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+}
+
+.stat-card:hover::before {
+    opacity: 1;
+}
+
+/* Per-variant top-border colours */
+.stat-card.balance::before {
+    background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue));
+}
+
+.stat-card.income::before {
+    background: var(--accent-teal);
+}
+
+.stat-card.expenses::before {
+    background: var(--accent-rose);
+}
+
+.stat-card.savings::before {
+    background: var(--accent-blue);
+}
+
+/* Per-variant top-border colours */
+.stat-card .stat-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+}
+
+.stat-card.balance .stat-icon {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+.stat-card.income .stat-icon {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+.stat-card.expenses .stat-icon {
+    background: var(--accent-rose-dim);
+    color: var(--accent-rose);
+}
+
+.stat-card.savings .stat-icon {
+    background: var(--accent-blue-dim);
+    color: var(--accent-blue);
+}
+
+.stat-card .stat-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+}
+
+.stat-card .stat-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+/* Percentage-change pill shown below the value */
+.stat-card .stat-change {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+}
+
+.stat-change.positive {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+.stat-change.negative {
+    background: var(--accent-rose-dim);
+    color: var(--accent-rose);
+}
+
+/* ============================================================
+   7. Dashboard Cards  (generic content panel used throughout)
+============================================================ */
+.dash-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    height: 100%;
+}
+
+.dash-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.dash-card-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* Small contextual label (e.g. "April 2026") in the card header */
+.dash-card-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--surface-3);
+    color: var(--text-secondary);
+}
+
+/* ============================================================
+   8. Donut Chart & Legend
+   Chart.js canvas sits inside .chart-wrapper; the centred label
+   is absolutely positioned on top of the canvas hole.
+============================================================ */
+.chart-wrapper {
+    position: relative;
+    max-width: 280px;
+    margin: 0 auto 20px;
+}
+
+/* Centred "Saved / $X" label rendered over the donut hole */
+.chart-center-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.chart-center-label .label-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.chart-center-label .label-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent-teal);
+    letter-spacing: -0.02em;
+}
+
+/* Centred "Saved / $X" label rendered over the donut hole */
+.legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+/* Amount pushed to the right of each legend row */
+.legend-amount {
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.78rem;
+}
+
+/* ============================================================
+   9. Savings Targets
+   List of goal rows with animated progress bars.
+   Bar width is set to 0 on render and animated via JS timeout.
+============================================================ */
+.target-item {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.target-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.target-item:first-child {
+    padding-top: 0;
+}
+
+.target-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.target-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.target-name .target-emoji {
+    font-size: 1.15rem;
+}
+
+/* Status badge — colours indicate forecast health */
+.forecast-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.02em;
+}
+
+.forecast-badge.on-track {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+.forecast-badge.at-risk {
+    background: var(--accent-amber-dim);
+    color: var(--accent-amber);
+}
+
+.forecast-badge.behind {
+    background: var(--accent-rose-dim);
+    color: var(--accent-rose);
+}
+
+.target-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.target-progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--surface-3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* Status badge — colours indicate forecast health */
+.target-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.target-progress-fill.on-track {
+    background: linear-gradient(90deg, var(--accent-teal), #34d9ae);
+}
+
+.target-progress-fill.at-risk {
+    background: linear-gradient(90deg, var(--accent-amber), #fbbf24);
+}
+
+.target-progress-fill.behind {
+    background: linear-gradient(90deg, var(--accent-rose), #fb7185);
+}
+
+/* "current / goal" amounts shown to the right of the bar */
+.target-amounts {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.target-amounts strong {
+    color: var(--text-primary);
+}
+
+/* ============================================================
+   10. Monthly Momentum ring
+   SVG circle stroked with stroke-dasharray to represent progress
+   The arc is rotated -90deg so it starts from the top.
+============================================================ */
+.momentum-ring-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding: 10px 0;
+}
+
+.momentum-ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+}
+
+/* Start arc from 12 o'clock position */
+.momentum-ring svg {
+    transform: rotate(-90deg);
+}
+
+/* Start arc from 12 o'clock position */
+.momentum-ring .ring-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.momentum-ring .ring-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    display: block;
+}
+
+.momentum-ring .ring-text {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+/* Stat rows beside the ring (targets set / on-track / at-risk / behind) */
+.momentum-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.momentum-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Stat rows beside the ring (targets set / on-track / at-risk / behind) */
+.momentum-stat .m-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.momentum-stat .m-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.momentum-stat .m-value {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-left: auto;
+}
+
+/* ============================================================
+   11. Transactions table
+============================================================ */
+.txn-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.txn-table thead th {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 0 0 14px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.txn-table tbody td {
+    padding: 14px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+}
+
+.txn-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.txn-table tbody tr {
+    transition: background var(--transition-smooth);
+}
+
+.txn-table tbody tr:hover {
+    background: var(--surface-2);
+}
+
+.txn-category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.txn-amount {
+    font-weight: 700;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.92rem;
+}
+
+.txn-amount.expense {
+    color: var(--accent-rose);
+}
+
+.txn-amount.income-txn {
+    color: var(--accent-teal);
+}
+
+.txn-date {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* ============================================================
+   12. Modal & Form overrides
+   Override Bootstrap's default modal colours to match the dark theme.
+============================================================ */
+.modal-content {
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--border-subtle);
+    padding: 20px 24px;
+}
+
+.modal-title {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 700;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-subtle);
+    padding: 16px 24px;
+}
+
+.form-control, .form-select {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+}
+
+.form-control:focus, .form-select:focus {
+    background: var(--surface-2);
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 0 3px var(--accent-teal-dim);
+    color: var(--text-primary);
+}
+
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.btn-outline-secondary {
+    border-color: var(--border-subtle);
+    color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover {
+    background: var(--surface-3);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+/* ============================================================
+   12. Modal & Form overrides
+   Override Bootstrap's default modal colours to match the dark theme.
+============================================================ */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 200;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 90;
+}
+
+/* ============================================================
+   14. Animations
+   .anim-in triggers fadeInUp; stagger siblings with .anim-delay-N.
+============================================================ */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.anim-in {
+    animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.anim-delay-1 {
+    animation-delay: 0.06s;
+}
+
+.anim-delay-2 {
+    animation-delay: 0.12s;
+}
+
+.anim-delay-3 {
+    animation-delay: 0.18s;
+}
+
+.anim-delay-4 {
+    animation-delay: 0.24s;
+}
+
+.anim-delay-5 {
+    animation-delay: 0.30s;
+}
+
+.anim-delay-6 {
+    animation-delay: 0.36s;
+}
+
+/* ============================================================
+   14. Animations
+   .anim-in triggers fadeInUp; stagger siblings with .anim-delay-N.
+============================================================ */
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .sidebar-toggle {
+        display: flex;
+    }
+
+    .sidebar-overlay.show {
+        display: block;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 24px 16px 60px;
+    }
+
+    /* Extra top padding clears the floating hamburger button */
+    .top-bar {
+        padding-top: 48px;
+    }
+}
+
+/* Extra top padding clears the floating hamburger button */
+@media (max-width: 575.98px) {
+    .stat-card .stat-value {
+        font-size: 1.35rem;
+    }
+
+    .momentum-ring-wrapper {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
