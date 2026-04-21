@@ -2,8 +2,8 @@
 
 Repo for Project
 
-| UWA id   | Name     | Github ID  |
-| -------- | -------- | ---------- |
-| 24729742 | Scout Wu | Exusiai101 |
-|          |          |            |
-|          |          |            |
+| UWA id   | Name         | Github ID  |
+| -------- | --------     | ---------- |
+| 24729742 | Scout Wu     | Exusiai101 |
+| 24214482 | Hayden Ivins | Haydosi    |
+|          |              |            |
