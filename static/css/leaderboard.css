@@ -1,177 +1,36 @@
-:root {
-    --surface-0: #0b0f14;
-    --surface-1: #111820;
-    --surface-2: #17202b;
-    --surface-3: #1e2a38;
-    --border-subtle: rgba(255,255,255,0.06);
-    --border-hover: rgba(255,255,255,0.12);
-    --text-primary: #e8ecf1;
-    --text-secondary: #7a8ba3;
-    --text-muted: #4a5b70;
-    --accent-teal: #2dd4a8;
-    --accent-teal-dim: rgba(45,212,168,0.12);
-    --accent-teal-glow: rgba(45,212,168,0.25);
-    --accent-blue: #3b82f6;
-    --accent-blue-dim: rgba(59,130,246,0.12);
-    --accent-amber: #f59e0b;
-    --accent-amber-dim: rgba(245,158,11,0.12);
-    --accent-rose: #f43f5e;
-    --accent-rose-dim: rgba(244,63,94,0.12);
-    --accent-violet: #8b5cf6;
-    --accent-cyan: #06b6d4;
-    --radius-lg: 16px;
-    --radius-md: 12px;
-    --radius-sm: 8px;
-    --border: 1px solid var(--border-subtle);
-    --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    --shadow-card-hover: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 1px var(--border-hover);
+/* ============================================================
+   Leaderboard-specific styles
+   Shared base styles (variables, sidebar, layout) are in base.css
+============================================================ */
+
+/* ============================================================
+   1. Toolbar
+============================================================ */
+.leaderboard-toolbar {
+    display: grid;
+    grid-template-columns: 1fr 180px 180px;
+    gap: 12px;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: "Plus Jakarta Sans", sans-serif;
-    background: var(--surface-0);
-    color: var(--text-primary);
-    min-height: 100vh;
-    overflow-x: hidden;
-}
-body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-        radial-gradient(ellipse 80% 60% at 10% 0%, rgba(45,212,168,0.04), transparent),
-        radial-gradient(ellipse 60% 50% at 90% 100%, rgba(59,130,246,0.03), transparent);
-    pointer-events: none;
-    z-index: 0;
-}
-.sidebar { position: fixed; top: 0; left: 0; bottom: 0; width: 260px; background: var(--surface-1); border-right: var(--border); z-index: 100; display: flex; flex-direction: column; transition: transform var(--transition-smooth); }
-.sidebar-brand { padding: 28px 24px 24px; border-bottom: var(--border); }
-.sidebar-brand h1 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; font-size: 1.5rem; letter-spacing: -0.03em; display: flex; align-items: center; gap: 10px; }
-.sidebar-brand .brand-dot { width: 10px; height: 10px; background: var(--accent-teal); border-radius: 50%; box-shadow: 0 0 12px var(--accent-teal-glow); display: inline-block; }
-.sidebar-nav { padding: 16px 12px; flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.sidebar-nav .nav-link { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 0.875rem; font-weight: 500; text-decoration: none; transition: all var(--transition-smooth); }
-.sidebar-nav .nav-link:hover { background: var(--surface-2); color: var(--text-primary); }
-.sidebar-nav .nav-link.active { background: var(--accent-teal-dim); color: var(--accent-teal); }
-.sidebar-nav .nav-section-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); padding: 20px 14px 8px; }
-.sidebar-footer { padding: 16px; border-top: var(--border); }
-.user-pill { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); cursor: pointer; transition: background var(--transition-smooth); }
-.user-pill:hover { background: var(--surface-3); }
-.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue)); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; color: #fff; }
-.user-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-email { font-size: 0.72rem; color: var(--text-muted); }
 
-.main-content { margin-left: 260px; padding: 32px 36px 60px; position: relative; z-index: 1; }
-.top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
-.page-title { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.65rem; font-weight: 700; letter-spacing: -0.02em; }
-.page-subtitle { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
-.btn-accent { background: var(--accent-teal); color: #0b0f14; border: none; font-weight: 600; font-size: 0.85rem; padding: 10px 20px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 8px; transition: all var(--transition-smooth); box-shadow: 0 0 20px var(--accent-teal-dim); }
-.btn-accent:hover { background: #3ee8b8; color: #0b0f14; transform: translateY(-1px); box-shadow: 0 0 30px var(--accent-teal-glow); }
-
-.stat-card, .dash-card { background: var(--surface-1); border: var(--border); border-radius: var(--radius-lg); }
-.stat-card { padding: 22px 24px; transition: all var(--transition-smooth); position: relative; overflow: hidden; }
-.stat-card::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 3px; opacity: 0; transition: opacity var(--transition-smooth); }
-.stat-card:hover { border-color: var(--border-hover); box-shadow: var(--shadow-card-hover); transform: translateY(-2px); }
-.stat-card:hover::before { opacity: 1; }
-.stat-card.balance::before { background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue)); }
-.stat-card.income::before { background: var(--accent-teal); }
-.stat-card.expenses::before { background: var(--accent-rose); }
-.stat-card.savings::before { background: var(--accent-blue); }
-.stat-icon { width: 42px; height: 42px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; margin-bottom: 16px; }
-.balance .stat-icon, .income .stat-icon { background: var(--accent-teal-dim); color: var(--accent-teal); }
-.expenses .stat-icon { background: var(--accent-rose-dim); color: var(--accent-rose); }
-.savings .stat-icon { background: var(--accent-blue-dim); color: var(--accent-blue); }
-.stat-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; }
-.stat-value { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.7rem; font-weight: 700; line-height: 1; }
-.stat-change { display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; font-weight: 600; margin-top: 10px; padding: 3px 8px; border-radius: 20px; }
-.positive { background: var(--accent-teal-dim); color: var(--accent-teal); }
-.negative { background: var(--accent-rose-dim); color: var(--accent-rose); }
-
-.dash-card { padding: 24px; height: 100%; }
-.dash-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-.dash-card-title { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.05rem; font-weight: 700; }
-.dash-card-badge { font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; background: var(--surface-3); color: var(--text-secondary); }
-.chart-wrapper { position: relative; max-width: 280px; margin: 0 auto 20px; }
-.chart-center-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none; }
-.label-text { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; }
-.label-value { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--accent-teal); }
-.legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-secondary); }
-.legend-dot { width: 10px; height: 10px; border-radius: 3px; }
-.legend-amount { margin-left: auto; font-weight: 600; color: var(--text-primary); font-size: 0.78rem; }
-
-.target-item { padding: 16px 0; border-bottom: var(--border); }
-.target-item:first-child { padding-top: 0; }
-.target-item:last-child { border-bottom: none; padding-bottom: 0; }
-.target-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.target-name { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
-.target-emoji { font-size: 1.15rem; }
-.forecast-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.02em; }
-.forecast-badge.on-track { background: var(--accent-teal-dim); color: var(--accent-teal); }
-.forecast-badge.at-risk { background: var(--accent-amber-dim); color: var(--accent-amber); }
-.forecast-badge.behind { background: var(--accent-rose-dim); color: var(--accent-rose); }
-.target-progress-row { display: flex; align-items: center; gap: 12px; }
-.target-progress-bar { flex: 1; height: 8px; background: var(--surface-3); border-radius: 4px; overflow: hidden; }
-.target-progress-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
-.target-progress-fill.on-track { background: linear-gradient(90deg, var(--accent-teal), #34d9ae); }
-.target-progress-fill.at-risk { background: linear-gradient(90deg, var(--accent-amber), #fbbf24); }
-.target-progress-fill.behind { background: linear-gradient(90deg, var(--accent-rose), #fb7185); }
-.target-amounts { font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap; }
-.target-amounts strong { color: var(--text-primary); }
-
-.momentum-ring-wrapper { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 10px 0; }
-.momentum-ring { position: relative; width: 120px; height: 120px; }
-.momentum-ring svg { transform: rotate(-90deg); }
-.ring-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-.ring-value { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.4rem; font-weight: 800; display: block; }
-.ring-text { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
-.momentum-stats { display: flex; flex-direction: column; gap: 14px; }
-.momentum-stat { display: flex; align-items: center; gap: 10px; }
-.m-dot { width: 10px; height: 10px; border-radius: 50%; }
-.m-label { font-size: 0.82rem; color: var(--text-secondary); }
-.m-value { font-weight: 700; font-size: 0.9rem; margin-left: auto; }
-
-.txn-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-.txn-table thead th { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); padding: 0 0 14px; border-bottom: var(--border); }
-.txn-table tbody td { padding: 14px 0; font-size: 0.85rem; border-bottom: var(--border); vertical-align: middle; }
-.txn-table tbody tr:last-child td { border-bottom: none; }
-.txn-table tbody tr:hover { background: var(--surface-2); }
-.txn-category-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
-.txn-amount { font-weight: 700; font-family: "Bricolage Grotesque", sans-serif; font-size: 0.92rem; }
-.txn-amount.expense { color: var(--accent-rose); }
-.txn-amount.income-txn { color: var(--accent-teal); }
-.txn-date { color: var(--text-muted); font-size: 0.8rem; }
-
-.modal-content { background: var(--surface-1); border: var(--border); border-radius: var(--radius-lg); }
-.modal-header { border-bottom: var(--border); padding: 20px 24px; }
-.modal-title { font-family: "Bricolage Grotesque", sans-serif; font-weight: 700; }
-.modal-body { padding: 24px; }
-.modal-footer { border-top: var(--border); padding: 16px 24px; }
-.form-control, .form-select { background: var(--surface-2); border: var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.88rem; padding: 10px 14px; }
-.form-control:focus, .form-select:focus { background: var(--surface-2); border-color: var(--accent-teal); box-shadow: 0 0 0 3px var(--accent-teal-dim); color: var(--text-primary); }
-.form-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-.btn-outline-secondary { border-color: var(--border-subtle); color: var(--text-secondary); }
-.btn-outline-secondary:hover { background: var(--surface-3); border-color: var(--border-hover); color: var(--text-primary); }
-
-.sidebar-toggle { display: none; position: fixed; top: 16px; left: 16px; z-index: 200; width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--surface-2); border: var(--border); color: var(--text-primary); font-size: 1.2rem; cursor: pointer; align-items: center; justify-content: center; }
-.sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; }
-@keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-.anim-in { animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
-.anim-delay-1 { animation-delay: 0.06s; } .anim-delay-2 { animation-delay: 0.12s; } .anim-delay-3 { animation-delay: 0.18s; }
-.anim-delay-4 { animation-delay: 0.24s; } .anim-delay-5 { animation-delay: 0.30s; } .anim-delay-6 { animation-delay: 0.36s; }
-
-.leaderboard-toolbar { display: grid; grid-template-columns: 1fr 180px 180px; gap: 12px; }
 .search-wrap { position: relative; }
-.search-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+.search-wrap i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
 .search-wrap .form-control { padding-left: 36px; }
-.podium-card { position: relative; border: 1px solid var(--border-subtle); }
-.podium-rank { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
-.podium-user { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.podium-name { font-weight: 700; }
-.podium-score { font-family: "Bricolage Grotesque", sans-serif; font-size: 1.5rem; color: var(--accent-teal); font-weight: 800; }
-.leader-name-wrap { display: flex; align-items: center; gap: 10px; }
-.leaderboard-table tbody tr.leaderboard-me { background: rgba(45, 212, 168, 0.08); }
-.percentage-under { margin-top: 8px; font-size: 0.8rem; color: var(--accent-teal); font-weight: 700; }
-.section-switcher { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ============================================================
+   2. Section Switcher Tabs
+============================================================ */
+.section-switcher {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .section-tab {
     border: 1px solid var(--border-subtle);
     background: var(--surface-2);
@@ -183,24 +42,66 @@ body::before {
     cursor: pointer;
     transition: all var(--transition-smooth);
 }
+
 .section-tab:hover { color: var(--text-primary); border-color: var(--border-hover); }
+
 .section-tab.active {
     background: var(--accent-teal-dim);
     color: var(--accent-teal);
-    border-color: rgba(45,212,168,0.45);
+    border-color: rgba(45, 212, 168, 0.45);
 }
+
 .hidden-section { display: none; }
 
-@media (max-width: 991.98px) {
-    .sidebar { transform: translateX(-100%); }
-    .sidebar.open { transform: translateX(0); }
-    .sidebar-toggle { display: flex; }
-    .sidebar-overlay.show { display: block; }
-    .main-content { margin-left: 0; padding: 24px 16px 60px; }
-    .top-bar { padding-top: 48px; }
-    .leaderboard-toolbar { grid-template-columns: 1fr; }
+/* ============================================================
+   3. Podium Cards
+============================================================ */
+.podium-card {
+    position: relative;
+    border: 1px solid var(--border-subtle);
 }
-@media (max-width: 575.98px) {
-    .stat-value { font-size: 1.35rem; }
-    .momentum-ring-wrapper { flex-direction: column; gap: 20px; }
+
+.podium-rank { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
+
+.podium-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.podium-name { font-weight: 700; }
+
+.podium-score {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.5rem;
+    color: var(--accent-teal);
+    font-weight: 800;
+}
+
+/* ============================================================
+   4. Leaderboard Table
+============================================================ */
+.leader-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.leaderboard-table tbody tr.leaderboard-me {
+    background: rgba(45, 212, 168, 0.08);
+}
+
+.percentage-under {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--accent-teal);
+    font-weight: 700;
+}
+
+/* ============================================================
+   5. Responsive
+============================================================ */
+@media (max-width: 991.98px) {
+    .leaderboard-toolbar { grid-template-columns: 1fr; }
 }
