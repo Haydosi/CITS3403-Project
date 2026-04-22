@@ -1,0 +1,36 @@
+<!-- ============================================================
+     Mobile sidebar controls
+     The toggle button and overlay are hidden on desktop (display:none
+     in CSS) and revealed via the responsive breakpoint at <992px.
+============================================================ -->
+
+<aside class="sidebar" id="sidebar">
+    <!-- Brand / logo -->
+    <div class="sidebar-brand">
+        <h1><span class="brand-dot"></span>MyMoney</h1>
+    </div>
+    <!-- Navigation links grouped by section label -->
+    <!-- remember to use flask links for these later (once it is actually functional) -->
+    <nav class="sidebar-nav">
+        <div class="nav-section-label">Main</div>
+        <a href="#" class="nav-link active"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="#" class="nav-link"><i class="bi bi-wallet2"></i> Transactions</a>
+        <a href="#" class="nav-link"><i class="bi bi-bullseye"></i> Targets</a>
+        <div class="nav-section-label">Social</div>
+        <a href="#" class="nav-link"><i class="bi bi-trophy"></i> Leaderboard</a>
+        <a href="#" class="nav-link"><i class="bi bi-people"></i> Groups</a>
+        <div class="nav-section-label">Tools</div>
+        <a href="#" class="nav-link"><i class="bi bi-calculator"></i> Debt Calculator</a>
+        <a href="#" class="nav-link"><i class="bi bi-robot"></i> AI Advisor</a>
+    </nav>
+    <!-- Logged-in user info at the bottom of the sidebar -->
+    <div class="sidebar-footer">
+        <div class="user-pill">
+            <div class="user-avatar">SM</div>
+            <div class="user-info">
+                <div class="user-name">Scout M.</div>
+                <div class="user-email">scout@example.com</div>
+            </div>
+        </div>
+    </div>
+</aside>

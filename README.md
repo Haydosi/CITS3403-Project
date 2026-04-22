@@ -10,15 +10,31 @@ Repo for Project
 
 
 
+<br>
+<br>
 
-use python venv 
+<h5>For the python virtual environment</h5>
+
+
+Use python venv:
+```bash
 python3 -m venv .venv
+```
 
-On MacOS
+On MacOS:
+```bash
 source .venv/bin/activate
+```
 
-install anything that's needed from requirements.txt
+Install anything that's needed from requirements.txt
+```bash
 pip3 install -r python_requirements.txt
+```
+
+<br>
+<h5>How to run</h5>
 
 run/test with:
+```bash
 flask --app app run --debug
+```
