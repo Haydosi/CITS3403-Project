@@ -1,6 +1,6 @@
-from flask import Flask, render_template
+from flask import render_template
+from app import app
 
-app = Flask(__name__)
 
 # renders templates
 @app.route("/")
@@ -14,8 +14,3 @@ def leaderboard():
 @app.route("/login")
 def login():
     return render_template("login.html")
-
-
-# makes file run as program for starting via running directly
-if __name__ == "__main__":
-    app.run(debug=True)

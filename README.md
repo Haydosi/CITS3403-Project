@@ -36,5 +36,5 @@ pip3 install -r python_requirements.txt
 
 run/test with:
 ```bash
-flask --app app run --debug
+flask --app mymoney run --debug
 ```
