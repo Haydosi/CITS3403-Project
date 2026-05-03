@@ -22,7 +22,7 @@
 
 <body>
 
-    {% include "partials/sidebar.html" %}
+    {% block sidebar %}{% include "partials/sidebar.html" %}{% endblock %}
     {% block content %}{% endblock %}
 
     <!-- Bootstrap JS bundle (includes Popper) — required for modal, dropdowns -->
