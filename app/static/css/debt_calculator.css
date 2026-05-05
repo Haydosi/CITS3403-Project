@@ -1,0 +1,205 @@
+/* ============================================================
+   Debt Calculator — page-specific styles
+   Relies on CSS custom properties from base.css
+============================================================ */
+
+/* ── Calculator Type Switcher ─────────────────────────────── */
+.calc-switcher {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.calc-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+}
+
+.calc-tab i {
+    font-size: 1rem;
+}
+
+.calc-tab:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.calc-tab.active {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    border-color: rgba(45, 212, 168, 0.3);
+    box-shadow: 0 0 16px var(--accent-teal-dim);
+}
+
+/* ── Section visibility ───────────────────────────────────── */
+.hidden-section {
+    display: none;
+}
+
+/* ── Calculator form helpers ──────────────────────────────── */
+.calc-form {
+    margin-top: 4px;
+}
+
+.calc-title-icon {
+    color: var(--accent-teal);
+    margin-right: 6px;
+    font-size: 1.05rem;
+}
+
+/* Input with $ prefix or % suffix */
+.input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-prefix,
+.input-suffix {
+    position: absolute;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.input-prefix { left: 12px; }
+.input-suffix { right: 12px; }
+
+.form-control.with-prefix  { padding-left: 28px; }
+.form-control.with-suffix  { padding-right: 32px; }
+
+/* Side-by-side value + unit selector */
+.input-pair {
+    display: flex;
+    gap: 8px;
+}
+
+.input-pair .form-control {
+    flex: 1;
+}
+
+.term-unit {
+    width: 110px;
+    flex-shrink: 0;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+.calc-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    gap: 12px;
+}
+
+.calc-empty-icon {
+    font-size: 2.8rem;
+    opacity: 0.35;
+    color: var(--accent-teal);
+}
+
+.calc-empty-state p {
+    font-size: 0.875rem;
+    max-width: 280px;
+    line-height: 1.6;
+}
+
+.calc-empty-state strong {
+    color: var(--text-secondary);
+}
+
+/* ── Result grid ──────────────────────────────────────────── */
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.result-grid.hidden {
+    display: none;
+}
+
+.result-card {
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.result-card.teal   { background: var(--accent-teal-dim);   border-color: rgba(45, 212, 168, 0.18); }
+.result-card.blue   { background: var(--accent-blue-dim);   border-color: rgba(59, 130, 246, 0.18); }
+.result-card.rose   { background: var(--accent-rose-dim);   border-color: rgba(244, 63, 94, 0.18);  }
+.result-card.amber  { background: var(--accent-amber-dim);  border-color: rgba(245, 158, 11, 0.18); }
+.result-card.violet { background: var(--accent-violet-dim); border-color: rgba(139, 92, 246, 0.18); }
+
+.result-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+}
+
+.result-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+.result-card.teal  .result-value { color: var(--accent-teal);  }
+.result-card.rose  .result-value { color: var(--accent-rose);  }
+.result-card.amber .result-value { color: var(--accent-amber); }
+.result-card.blue  .result-value { color: var(--accent-blue);  }
+
+/* ── Chart placeholder ────────────────────────────────────── */
+.chart-placeholder {
+    position: relative;
+    min-height: 180px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-subtle);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-placeholder canvas {
+    display: none; /* shown by JS once it renders a real chart */
+}
+
+.chart-placeholder-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 12px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .calc-switcher { flex-direction: column; }
+    .calc-tab      { justify-content: center; }
+
+    .result-grid   { grid-template-columns: 1fr; }
+}
