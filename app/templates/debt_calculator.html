@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}MyMoney - Debt Calculator{% endblock %}
+
+{% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/debt_calculator.css') }}">
+{% endblock %}
+
+
+{% block content %}
+<main class="main-content">
+
+    <!-- Top Bar -->
+    <section class="top-bar anim-in">
+        <div>
+            <h2 class="page-title">Debt Calculator</h2>
+            <p class="page-subtitle">Model repayments for personal loans, credit cards, and mortgages.</p>
+        </div>
+    </section>
+
+    <!-- Calculator type selector -->
+    <section class="dash-card mb-4 anim-in anim-delay-1">
+        <div class="calc-switcher">
+            <button class="calc-tab active" id="tabPersonalLoan" type="button">
+                <i class="bi bi-cash-coin"></i> Personal Loan
+            </button>
+            <button class="calc-tab" id="tabCreditCard" type="button">
+                <i class="bi bi-credit-card"></i> Credit Card
+            </button>
+            <button class="calc-tab" id="tabMortgage" type="button">
+                <i class="bi bi-house-door"></i> Mortgage
+            </button>
+        </div>
+    </section>
+
+    <!-- ── Personal Loan Calculator ───────────────────────────────────── -->
+    <section class="anim-in anim-delay-2" id="sectionPersonalLoan">
+        <div class="row g-4">
+
+            <!-- Inputs -->
+            <div class="col-lg-5">
+            </div>
+
+            <!-- Results placeholder -->
+            <div class="col-lg-7">
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── Credit Card Calculator ─────────────────────────────────────── -->
+    <section class="anim-in anim-delay-2 hidden-section" id="sectionCreditCard">
+        <div class="row g-4">
+
+            <!-- Inputs -->
+            <div class="col-lg-5">
+            </div>
+
+            <!-- Results placeholder -->
+            <div class="col-lg-7">
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ── Mortgage Calculator ────────────────────────────────────────── -->
+    <section class="anim-in anim-delay-2 hidden-section" id="sectionMortgage">
+        <div class="row g-4">
+
+            <!-- Inputs -->
+            <div class="col-lg-5">
+            </div>
+
+            <!-- Results placeholder -->
+            <div class="col-lg-7">
+            </div>
+
+        </div>
+    </section>
+
+</main>
+{% endblock %}
+
+
+{% block page_js %}
+<script src="{{ url_for('static', filename='js/debt_calculator.js') }}"></script>
+{% endblock %}
