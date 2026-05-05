@@ -34,7 +34,25 @@ pip3 install -r python_requirements.txt
 <br>
 <h5>How to run</h5>
 
-run/test with:
+Run/test with:
 ```bash
-flask --app app run --debug
+flask --app mymoney run --debug
 ```
+
+<br>
+<h5>Database</h5>
+
+After changing `models.py` run:
+```bash
+flask --app mymoney db migrate -m "message goes here"
+```
+in order to create the migrations
+
+Then run:
+```bash
+flask --app mymoney db upgrade
+```
+to update the database
+
+You also need to run this when pulling changed migrations
+(since the database is in .gitignore)
