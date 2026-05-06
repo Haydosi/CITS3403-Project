@@ -203,3 +203,186 @@
 
     .result-grid   { grid-template-columns: 1fr; }
 }
+
+/* ── Mortgage Calculator ──────────────────────────────────── */
+.mc-mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.mc-mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    white-space: nowrap;
+}
+
+.mc-mode-btn i { font-size: 0.85rem; }
+
+.mc-mode-btn:hover {
+    color: var(--text-secondary);
+    background: var(--surface-3);
+}
+
+.mc-mode-btn.active {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    box-shadow: 0 0 12px var(--accent-teal-dim);
+}
+
+.mc-panel-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.mc-optional {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.mc-yrs-suffix {
+    font-size: 0.75rem;
+    right: 10px;
+}
+
+/* ── Hero result ──────────────────────────────────────────── */
+.mc-hero {
+    background: linear-gradient(135deg, var(--accent-teal-dim), var(--accent-blue-dim));
+    border: 1px solid rgba(45, 212, 168, 0.18);
+    border-radius: var(--radius-md);
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.mc-hero-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.mc-hero-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent-teal);
+    line-height: 1.1;
+    margin-bottom: 6px;
+    word-break: break-word;
+}
+
+.mc-hero-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* ── Inline error ─────────────────────────────────────────── */
+.mc-error {
+    font-size: 0.78rem;
+    color: var(--accent-rose);
+    padding: 8px 12px;
+    background: var(--accent-rose-dim);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(244, 63, 94, 0.18);
+}
+
+/* ── Chart ────────────────────────────────────────────────── */
+.mc-chart-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.mc-chart-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.mc-chart-body {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+}
+
+.mc-chart-body canvas {
+    max-width: 150px;
+    max-height: 150px;
+    flex-shrink: 0;
+}
+
+.mc-chart-legend {
+    flex: 1;
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mc-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mc-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mc-legend-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: block;
+}
+
+.mc-legend-amount {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+}
+
+/* ── Disclaimer ───────────────────────────────────────────── */
+.mc-disclaimer {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* ── Mortgage responsive ──────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .mc-mode-tabs   { flex-direction: column; }
+    .mc-hero-value  { font-size: 1.8rem; }
+    .mc-chart-body  { justify-content: center; }
+}
