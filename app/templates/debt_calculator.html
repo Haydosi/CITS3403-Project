@@ -37,12 +37,275 @@
     <section class="anim-in anim-delay-2" id="sectionPersonalLoan">
         <div class="row g-4">
 
-            <!-- Inputs -->
+            <!-- Inputs: Left Column -->
             <div class="col-lg-5">
+                <div class="dash-card">
+
+                    <!-- Mode switcher -->
+                    <div class="mc-mode-tabs mb-4">
+                        <button class="mc-mode-btn active" data-pl-mode="repayments">
+                            <i class="bi bi-calculator"></i><span>Repayments</span>
+                        </button>
+                        <button class="mc-mode-btn" data-pl-mode="borrow">
+                            <i class="bi bi-bank"></i><span>Borrowing</span>
+                        </button>
+                        <button class="mc-mode-btn" data-pl-mode="sooner">
+                            <i class="bi bi-clock-history"></i><span>Repay Sooner</span>
+                        </button>
+                    </div>
+
+                    <!-- Panel 1: How much will repayments be? -->
+                    <div class="pl-mode-panel" id="pl-panel-repayments">
+                        <p class="mc-panel-desc">Calculate your regular personal loan repayment amount.</p>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-r-amount">Amount Borrowed</label>
+                            <div class="input-icon-wrap">
+                                <span class="input-prefix">$</span>
+                                <input type="number" class="form-control with-prefix" id="pl-r-amount" placeholder="15000" min="1">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-r-rate">Annual Interest Rate</label>
+                            <div class="input-icon-wrap">
+                                <input type="number" class="form-control with-suffix" id="pl-r-rate" placeholder="9.5" min="0.01" max="50" step="0.01">
+                                <span class="input-suffix">%</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label" for="pl-r-term">Loan Term</label>
+                                <div class="input-icon-wrap">
+                                    <input type="number" class="form-control with-suffix" id="pl-r-term" placeholder="5" min="1" max="15">
+                                    <span class="input-suffix mc-yrs-suffix">yrs</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="pl-r-freq">Repayment Frequency</label>
+                                <select class="form-select" id="pl-r-freq">
+                                    <option value="52">Weekly</option>
+                                    <option value="26">Fortnightly</option>
+                                    <option value="12" selected>Monthly</option>
+                                    <option value="4">Quarterly</option>
+                                    <option value="1">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <label class="form-label" for="pl-r-fee">Fees <span class="mc-optional">(optional)</span></label>
+                                <div class="input-icon-wrap">
+                                    <span class="input-prefix">$</span>
+                                    <input type="number" class="form-control with-prefix" id="pl-r-fee" placeholder="0" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="pl-r-feefreq">Fee Frequency</label>
+                                <select class="form-select" id="pl-r-feefreq">
+                                    <option value="52">Weekly</option>
+                                    <option value="26">Fortnightly</option>
+                                    <option value="12" selected>Monthly</option>
+                                    <option value="4">Quarterly</option>
+                                    <option value="1">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn-accent w-100" id="pl-btn-repayments">
+                            <i class="bi bi-calculator"></i> Calculate Repayments
+                        </button>
+                        <div class="mc-error d-none mt-2" id="pl-r-error"></div>
+                    </div>
+
+                    <!-- Panel 2: How much can I borrow? -->
+                    <div class="pl-mode-panel d-none" id="pl-panel-borrow">
+                        <p class="mc-panel-desc">Find out the maximum amount you can borrow with a personal loan.</p>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-b-payment">Affordable Repayment</label>
+                            <div class="input-icon-wrap">
+                                <span class="input-prefix">$</span>
+                                <input type="number" class="form-control with-prefix" id="pl-b-payment" placeholder="500" min="1">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-b-freq">Repayment Frequency</label>
+                            <select class="form-select" id="pl-b-freq">
+                                <option value="52">Weekly</option>
+                                <option value="26">Fortnightly</option>
+                                <option value="12" selected>Monthly</option>
+                                <option value="4">Quarterly</option>
+                                <option value="1">Yearly</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-b-rate">Annual Interest Rate</label>
+                            <div class="input-icon-wrap">
+                                <input type="number" class="form-control with-suffix" id="pl-b-rate" placeholder="9.5" min="0.01" max="50" step="0.01">
+                                <span class="input-suffix">%</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <label class="form-label" for="pl-b-term">Loan Term</label>
+                                <div class="input-icon-wrap">
+                                    <input type="number" class="form-control with-suffix" id="pl-b-term" placeholder="5" min="1" max="15">
+                                    <span class="input-suffix mc-yrs-suffix">yrs</span>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="pl-b-fee">Fees <span class="mc-optional">(optional)</span></label>
+                                <div class="input-icon-wrap">
+                                    <span class="input-prefix">$</span>
+                                    <input type="number" class="form-control with-prefix" id="pl-b-fee" placeholder="0" min="0" value="0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label" for="pl-b-feefreq">Fee Frequency</label>
+                            <select class="form-select" id="pl-b-feefreq">
+                                <option value="52">Weekly</option>
+                                <option value="26">Fortnightly</option>
+                                <option value="12" selected>Monthly</option>
+                                <option value="4">Quarterly</option>
+                                <option value="1">Yearly</option>
+                            </select>
+                        </div>
+
+                        <button class="btn-accent w-100" id="pl-btn-borrow">
+                            <i class="bi bi-bank"></i> Calculate Borrowing Capacity
+                        </button>
+                        <div class="mc-error d-none mt-2" id="pl-b-error"></div>
+                    </div>
+
+                    <!-- Panel 3: How can I repay sooner? -->
+                    <div class="pl-mode-panel d-none" id="pl-panel-sooner">
+                        <p class="mc-panel-desc">See how long it takes to repay your existing personal loan.</p>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-s-amount">Amount Owing</label>
+                            <div class="input-icon-wrap">
+                                <span class="input-prefix">$</span>
+                                <input type="number" class="form-control with-prefix" id="pl-s-amount" placeholder="10000" min="1">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-s-payment">Current Repayment</label>
+                            <div class="input-icon-wrap">
+                                <span class="input-prefix">$</span>
+                                <input type="number" class="form-control with-prefix" id="pl-s-payment" placeholder="300" min="1">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-s-freq">Repayment Frequency</label>
+                            <select class="form-select" id="pl-s-freq">
+                                <option value="52">Weekly</option>
+                                <option value="26">Fortnightly</option>
+                                <option value="12" selected>Monthly</option>
+                                <option value="4">Quarterly</option>
+                                <option value="1">Yearly</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label" for="pl-s-rate">Annual Interest Rate</label>
+                            <div class="input-icon-wrap">
+                                <input type="number" class="form-control with-suffix" id="pl-s-rate" placeholder="9.5" min="0.01" max="50" step="0.01">
+                                <span class="input-suffix">%</span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <label class="form-label" for="pl-s-fee">Fees <span class="mc-optional">(optional)</span></label>
+                                <div class="input-icon-wrap">
+                                    <span class="input-prefix">$</span>
+                                    <input type="number" class="form-control with-prefix" id="pl-s-fee" placeholder="0" min="0" value="0">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label" for="pl-s-feefreq">Fee Frequency</label>
+                                <select class="form-select" id="pl-s-feefreq">
+                                    <option value="52">Weekly</option>
+                                    <option value="26">Fortnightly</option>
+                                    <option value="12" selected>Monthly</option>
+                                    <option value="4">Quarterly</option>
+                                    <option value="1">Yearly</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button class="btn-accent w-100" id="pl-btn-sooner">
+                            <i class="bi bi-clock-history"></i> Calculate Repayment Time
+                        </button>
+                        <div class="mc-error d-none mt-2" id="pl-s-error"></div>
+                    </div>
+
+                </div>
             </div>
 
-            <!-- Results placeholder -->
+            <!-- Results: Right Column -->
             <div class="col-lg-7">
+                <div class="dash-card">
+
+                    <!-- Empty state -->
+                    <div class="calc-empty-state" id="pl-empty">
+                        <i class="bi bi-cash-coin calc-empty-icon"></i>
+                        <strong>Personal Loan Calculator</strong>
+                        <p>Choose a calculator type, fill in the details, and click <strong>Calculate</strong> to see your results here.</p>
+                    </div>
+
+                    <!-- Results panel (hidden until calculated) -->
+                    <div class="d-none" id="pl-results">
+
+                        <!-- Hero result -->
+                        <div class="mc-hero mb-4">
+                            <div class="mc-hero-label" id="pl-hero-label">Repayment Amount</div>
+                            <div class="mc-hero-value" id="pl-hero-value">—</div>
+                            <div class="mc-hero-sub" id="pl-hero-sub"></div>
+                        </div>
+
+                        <!-- 3 metric cards -->
+                        <div class="result-grid mb-4">
+                            <div class="result-card teal">
+                                <div class="result-label" id="pl-c1-label">Total Repayments</div>
+                                <div class="result-value" id="pl-c1-value">—</div>
+                            </div>
+                            <div class="result-card blue">
+                                <div class="result-label" id="pl-c2-label">Total Interest</div>
+                                <div class="result-value" id="pl-c2-value">—</div>
+                            </div>
+                            <div class="result-card amber">
+                                <div class="result-label" id="pl-c3-label">Principal</div>
+                                <div class="result-value" id="pl-c3-value">—</div>
+                            </div>
+                        </div>
+
+                        <!-- Donut chart -->
+                        <div class="mc-chart-wrap">
+                            <div class="mc-chart-title">Repayment Breakdown</div>
+                            <div class="mc-chart-body">
+                                <canvas id="pl-donut" width="160" height="160"></canvas>
+                                <div class="mc-chart-legend" id="pl-legend"></div>
+                            </div>
+                        </div>
+
+                        <p class="mc-disclaimer mt-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Estimates only. Actual amounts may vary. Maximum loan term is 15 years. Not financial advice.
+                        </p>
+
+                    </div>
+                </div>
             </div>
 
         </div>

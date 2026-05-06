@@ -33,6 +33,226 @@
     }
 }());
 
+// ── Personal Loan Calculator ───────────────────────────────────────────────
+(function () {
+
+    // mcPMT, mcPV, mcNPER are defined in calculator_math.js.
+    // Naming: pv = principal, pmt = periodic payment, rate = periodic rate, nper = total periods, freq = payments/year.
+    // Personal loan max term: 15 years.
+
+    function fmtCurrency(v) {
+        if (!isFinite(v) || v < 0) return 'N/A';
+        return '$' + Math.round(v).toLocaleString('en-AU');
+    }
+
+    function freqLabel(f) {
+        return { 52: 'per week', 26: 'per fortnight', 12: 'per month', 4: 'per quarter', 1: 'per year' }[f] || '';
+    }
+
+    function timeLabel(nPeriods, freq) {
+        var totalYears = nPeriods / freq;
+        var years  = Math.floor(totalYears);
+        var months = Math.ceil((totalYears % 1) * 12);
+        if (months === 12) { months = 0; years++; }
+        var s = '';
+        if (years  > 0) s += years  + (years  === 1 ? ' year'  : ' years');
+        if (months > 0) s += (s ? ' ' : '') + months + (months === 1 ? ' month' : ' months');
+        return s || '0 months';
+    }
+
+    function showError(id, msg) {
+        var el = document.getElementById(id);
+        el.textContent = msg;
+        el.classList.remove('d-none');
+    }
+    function clearError(id) {
+        document.getElementById(id).classList.add('d-none');
+    }
+
+    var plChart = null;
+
+    function renderDonut(principal, interest) {
+        var ctx    = document.getElementById('pl-donut').getContext('2d');
+        var colors  = ['#2dd4a8', '#3b82f6'];
+        var labels  = ['Principal', 'Interest'];
+        var amounts = [Math.max(0, principal), Math.max(0, interest)];
+
+        if (plChart) {
+            plChart.data.datasets[0].data = amounts;
+            plChart.update();
+        } else {
+            plChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: amounts, backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }]
+                },
+                options: {
+                    cutout: '68%',
+                    plugins: { legend: { display: false } },
+                    animation: { duration: 500 }
+                }
+            });
+        }
+
+        document.getElementById('pl-legend').innerHTML = labels.map(function (l, i) {
+            return '<div class="mc-legend-item">' +
+                '<div class="mc-legend-dot" style="background:' + colors[i] + '"></div>' +
+                '<div><span class="mc-legend-name">' + l + '</span>' +
+                '<span class="mc-legend-amount">' + fmtCurrency(amounts[i]) + '</span></div>' +
+                '</div>';
+        }).join('');
+    }
+
+    function showResults(heroLabel, heroValue, heroSub,
+                         c1Label, c1Val, c2Label, c2Val, c3Label, c3Val,
+                         principal, interest) {
+        document.getElementById('pl-empty').classList.add('d-none');
+        document.getElementById('pl-results').classList.remove('d-none');
+
+        document.getElementById('pl-hero-label').textContent = heroLabel;
+        document.getElementById('pl-hero-value').textContent = heroValue;
+        document.getElementById('pl-hero-sub').textContent   = heroSub;
+
+        document.getElementById('pl-c1-label').textContent = c1Label;
+        document.getElementById('pl-c1-value').textContent = c1Val;
+        document.getElementById('pl-c2-label').textContent = c2Label;
+        document.getElementById('pl-c2-value').textContent = c2Val;
+        document.getElementById('pl-c3-label').textContent = c3Label;
+        document.getElementById('pl-c3-value').textContent = c3Val;
+
+        renderDonut(principal, interest);
+    }
+
+    // ── Mode 1: Repayments ─────────────────────────────────────────────────
+    document.getElementById('pl-btn-repayments').addEventListener('click', function () {
+        clearError('pl-r-error');
+        var amount  = parseFloat(document.getElementById('pl-r-amount').value);
+        var rate    = parseFloat(document.getElementById('pl-r-rate').value);
+        var term    = Math.min(parseInt(document.getElementById('pl-r-term').value) || 0, 15);
+        var freq    = parseInt(document.getElementById('pl-r-freq').value);
+        var fee     = parseFloat(document.getElementById('pl-r-fee').value)    || 0;
+        var feeFreq = parseInt(document.getElementById('pl-r-feefreq').value);
+
+        if (!amount || !rate || !term) {
+            showError('pl-r-error', 'Please fill in Amount Borrowed, Interest Rate, and Loan Term.');
+            return;
+        }
+
+        var periodRate    = (rate / 100) / freq;
+        var nper          = term * freq;
+        var feesPerPeriod = (fee * feeFreq) / freq;
+        var payment       = mcPMT(periodRate, nper, amount) + feesPerPeriod;
+        var totalPaid     = payment * nper;
+        var totalInterest = totalPaid - amount;
+
+        showResults(
+            'Repayment Amount',
+            fmtCurrency(payment) + ' ' + freqLabel(freq),
+            'over ' + term + ' year' + (term === 1 ? '' : 's') + ' at ' + rate + '% p.a.',
+            'Total Repayments', fmtCurrency(totalPaid),
+            'Total Interest',   fmtCurrency(totalInterest),
+            'Principal Borrowed', fmtCurrency(amount),
+            amount, totalInterest
+        );
+    });
+
+    // ── Mode 2: Borrowing capacity ─────────────────────────────────────────
+    document.getElementById('pl-btn-borrow').addEventListener('click', function () {
+        clearError('pl-b-error');
+        var payment = parseFloat(document.getElementById('pl-b-payment').value);
+        var freq    = parseInt(document.getElementById('pl-b-freq').value);
+        var rate    = parseFloat(document.getElementById('pl-b-rate').value);
+        var term    = Math.min(parseInt(document.getElementById('pl-b-term').value) || 0, 15);
+        var fee     = parseFloat(document.getElementById('pl-b-fee').value)    || 0;
+        var feeFreq = parseInt(document.getElementById('pl-b-feefreq').value);
+
+        if (!payment || !rate || !term) {
+            showError('pl-b-error', 'Please fill in Affordable Repayment, Interest Rate, and Loan Term.');
+            return;
+        }
+
+        var periodRate    = (rate / 100) / freq;
+        var nper          = term * freq;
+        var feesPerPeriod = (fee * feeFreq) / freq;
+        var netPayment    = payment - feesPerPeriod;
+
+        if (netPayment <= 0) {
+            showError('pl-b-error', 'Repayment is too low to cover fees. Please increase the repayment or reduce fees.');
+            return;
+        }
+
+        var principal = mcPV(periodRate, nper, netPayment);
+        if (!isFinite(principal) || principal <= 0) {
+            showError('pl-b-error', 'Repayment is too low to cover interest. Please increase the repayment amount.');
+            return;
+        }
+
+        var totalPaid     = payment * nper;
+        var totalInterest = totalPaid - principal;
+
+        showResults(
+            'Borrowing Capacity',
+            fmtCurrency(principal),
+            'Repay ' + fmtCurrency(payment) + ' ' + freqLabel(freq) + ' over ' + term + ' year' + (term === 1 ? '' : 's') + ' at ' + rate + '% p.a.',
+            'Total Repayments',  fmtCurrency(totalPaid),
+            'Total Interest',    fmtCurrency(totalInterest),
+            'Borrowing Capacity', fmtCurrency(principal),
+            principal, totalInterest
+        );
+    });
+
+    // ── Mode 3: Repay sooner ───────────────────────────────────────────────
+    document.getElementById('pl-btn-sooner').addEventListener('click', function () {
+        clearError('pl-s-error');
+        var amount  = parseFloat(document.getElementById('pl-s-amount').value);
+        var payment = parseFloat(document.getElementById('pl-s-payment').value);
+        var freq    = parseInt(document.getElementById('pl-s-freq').value);
+        var rate    = parseFloat(document.getElementById('pl-s-rate').value);
+        var fee     = parseFloat(document.getElementById('pl-s-fee').value)    || 0;
+        var feeFreq = parseInt(document.getElementById('pl-s-feefreq').value);
+
+        if (!amount || !payment || !rate) {
+            showError('pl-s-error', 'Please fill in Amount Owing, Repayment, and Interest Rate.');
+            return;
+        }
+
+        var periodRate    = (rate / 100) / freq;
+        var feesPerPeriod = (fee * feeFreq) / freq;
+        var netPayment    = payment - feesPerPeriod;
+
+        if (netPayment <= periodRate * amount) {
+            showError('pl-s-error', 'Repayment is too low to cover interest. Please increase your repayment.');
+            return;
+        }
+
+        var nPeriods      = mcNPER(periodRate, netPayment, amount);
+        var totalPaid     = payment * nPeriods;
+        var totalInterest = totalPaid - amount;
+
+        showResults(
+            'Time to Repay',
+            timeLabel(nPeriods, freq),
+            'Paying ' + fmtCurrency(payment) + ' ' + freqLabel(freq) + ' at ' + rate + '% p.a.',
+            'Total Repayments', fmtCurrency(totalPaid),
+            'Total Interest',   fmtCurrency(totalInterest),
+            'Amount Owing',     fmtCurrency(amount),
+            amount, totalInterest
+        );
+    });
+
+    // ── Mode panel switching ───────────────────────────────────────────────
+    document.querySelectorAll('[data-pl-mode]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.querySelectorAll('[data-pl-mode]').forEach(function (b) { b.classList.remove('active'); });
+            document.querySelectorAll('.pl-mode-panel').forEach(function (p) { p.classList.add('d-none'); });
+            this.classList.add('active');
+            document.getElementById('pl-panel-' + this.dataset.plMode).classList.remove('d-none');
+        });
+    });
+
+}());
+
 // ── Mortgage Calculator ────────────────────────────────────────────────────
 (function () {
 
@@ -261,10 +481,11 @@
     });
 
     // ── Mode panel switching ───────────────────────────────────────────────
-    document.querySelectorAll('.mc-mode-btn').forEach(function (btn) {
+    var mcSection = document.getElementById('sectionMortgage');
+    mcSection.querySelectorAll('.mc-mode-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            document.querySelectorAll('.mc-mode-btn').forEach(function (b) { b.classList.remove('active'); });
-            document.querySelectorAll('.mc-mode-panel').forEach(function (p) { p.classList.add('d-none'); });
+            mcSection.querySelectorAll('.mc-mode-btn').forEach(function (b) { b.classList.remove('active'); });
+            mcSection.querySelectorAll('.mc-mode-panel').forEach(function (p) { p.classList.add('d-none'); });
             this.classList.add('active');
             document.getElementById('mc-panel-' + this.dataset.mode).classList.remove('d-none');
         });
