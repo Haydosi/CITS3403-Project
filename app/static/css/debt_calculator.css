@@ -386,3 +386,308 @@
     .mc-hero-value  { font-size: 1.8rem; }
     .mc-chart-body  { justify-content: center; }
 }
+
+/* ============================================================
+   Credit Card Calculator
+============================================================ */
+
+/* ── Advanced settings toggle ─────────────────────────────── */
+.cc-adv-wrap {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 12px;
+}
+
+.cc-adv-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    color: var(--text-muted);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--transition-smooth);
+}
+
+.cc-adv-toggle:hover { color: var(--text-secondary); }
+
+.cc-adv-toggle i {
+    font-size: 0.75rem;
+    transition: transform var(--transition-smooth);
+}
+
+.cc-adv-toggle[aria-expanded="true"] i {
+    transform: rotate(180deg);
+}
+
+.cc-adv-body {
+    padding-top: 4px;
+}
+
+/* ── Savings banner ───────────────────────────────────────── */
+.cc-savings-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(135deg, var(--accent-teal-dim), var(--accent-blue-dim));
+    border: 1px solid rgba(45, 212, 168, 0.2);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
+}
+
+.cc-savings-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+}
+
+.cc-savings-amount {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent-teal);
+    white-space: nowrap;
+}
+
+/* ── Comparison cards ─────────────────────────────────────── */
+.cc-compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.cc-scenario-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.cc-scenario-highlight {
+    background: var(--accent-teal-dim);
+    border-color: rgba(45, 212, 168, 0.2);
+}
+
+.cc-scenario-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.cc-scenario-highlight .cc-scenario-header {
+    color: var(--accent-teal);
+}
+
+.cc-scenario-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cc-row-total {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 8px;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.cc-metric-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.cc-metric-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.cc-val-teal { color: var(--accent-teal); }
+.cc-val-rose { color: var(--accent-rose); }
+
+/* ── Slider ───────────────────────────────────────────────── */
+.cc-slider-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+}
+
+.cc-slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.cc-payment-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+}
+
+.cc-payment-prefix {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.cc-payment-input {
+    width: 68px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.cc-payment-input:focus { outline: none; }
+.cc-payment-input::-webkit-inner-spin-button,
+.cc-payment-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.cc-payment-input[type=number] { -moz-appearance: textfield; }
+
+.cc-slider-track-wrap {
+    position: relative;
+    height: 40px;
+}
+
+.cc-slider-track-base {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    z-index: 0;
+}
+
+.cc-slider-fill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    background: var(--accent-teal);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+    width: 0;
+    transition: width 0.05s linear;
+}
+
+.cc-slider {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.cc-slider:focus { outline: none; }
+
+.cc-slider::-webkit-slider-runnable-track {
+    height: 8px;
+    background: transparent;
+    border-radius: 8px;
+}
+
+.cc-slider::-moz-range-track {
+    height: 8px;
+    background: transparent;
+    border: none;
+}
+
+.cc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: 2px solid var(--surface-0);
+    box-shadow: 0 0 8px var(--accent-teal-glow);
+    margin-top: -7px;
+    cursor: pointer;
+}
+
+.cc-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: 2px solid var(--surface-0);
+    box-shadow: 0 0 8px var(--accent-teal-glow);
+    cursor: pointer;
+    border: 2px solid var(--surface-0);
+}
+
+.cc-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ── Chart ────────────────────────────────────────────────── */
+.cc-chart-container {
+    position: relative;
+    height: 220px;
+}
+
+.cc-chart-legend {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    gap: 5px;
+}
+
+.cc-legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cc-legend-text { margin-right: 4px; }
+
+/* ── Credit card responsive ───────────────────────────────── */
+@media (max-width: 575.98px) {
+    .cc-compare-grid    { grid-template-columns: 1fr; }
+    .cc-savings-banner  { flex-direction: column; text-align: center; }
+    .cc-savings-amount  { font-size: 1.6rem; }
+}

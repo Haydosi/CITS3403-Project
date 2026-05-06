@@ -52,12 +52,176 @@
     <section class="anim-in anim-delay-2 hidden-section" id="sectionCreditCard">
         <div class="row g-4">
 
-            <!-- Inputs -->
+            <!-- Inputs: Left Column -->
             <div class="col-lg-5">
+                <div class="dash-card">
+                    <p class="mc-panel-desc">See how long it will take to pay off your credit card, and how much you save by paying more each month.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="cc-amount">Amount Owing</label>
+                        <div class="input-icon-wrap">
+                            <span class="input-prefix">$</span>
+                            <input type="number" class="form-control with-prefix" id="cc-amount" placeholder="3000" min="1">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="cc-rate">Annual Interest Rate</label>
+                        <div class="input-icon-wrap">
+                            <input type="number" class="form-control with-suffix" id="cc-rate" placeholder="18.0" value="18.0" min="0.01" max="60" step="0.1">
+                            <span class="input-suffix">%</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-accent w-100 mb-3" id="cc-btn-calc" type="button">
+                        <i class="bi bi-calculator"></i> Calculate
+                    </button>
+                    <div class="mc-error d-none" id="cc-error"></div>
+
+                    <!-- Advanced Settings -->
+                    <div class="cc-adv-wrap mt-3">
+                        <button class="cc-adv-toggle" id="cc-adv-toggle" type="button" aria-expanded="false">
+                            <span>Advanced settings</span>
+                            <i class="bi bi-chevron-down" id="cc-adv-chevron"></i>
+                        </button>
+                        <div class="cc-adv-body d-none" id="cc-adv-body">
+                            <p class="mc-panel-desc mt-2 mb-3">Minimum repayment is the higher of a percentage of your closing balance or a fixed dollar amount. Adjust to match your card's terms.</p>
+                            <div class="mb-3">
+                                <label class="form-label" for="cc-minrate">Min repayment of balance</label>
+                                <select class="form-select" id="cc-minrate">
+                                    <option value="2">2%</option>
+                                    <option value="2.5">2.5%</option>
+                                    <option value="3">3%</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" for="cc-minamt">Min repayment ($)</label>
+                                <select class="form-select" id="cc-minamt">
+                                    <option value="5">$5</option>
+                                    <option value="10">$10</option>
+                                    <option value="15">$15</option>
+                                    <option value="20" selected>$20</option>
+                                    <option value="25">$25</option>
+                                    <option value="30">$30</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Results placeholder -->
+            <!-- Results: Right Column -->
             <div class="col-lg-7">
+                <div class="dash-card">
+
+                    <!-- Empty state -->
+                    <div class="calc-empty-state" id="cc-empty">
+                        <i class="bi bi-credit-card calc-empty-icon"></i>
+                        <strong>Credit Card Calculator</strong>
+                        <p>Enter your card balance and interest rate, then click <strong>Calculate</strong> to compare minimum vs higher repayments.</p>
+                    </div>
+
+                    <!-- Results panel (hidden until calculated) -->
+                    <div class="d-none" id="cc-results">
+
+                        <!-- Savings banner -->
+                        <div class="cc-savings-banner mb-4">
+                            <div class="cc-savings-label">Interest saved by paying more</div>
+                            <div class="cc-savings-amount" id="cc-savings">$0</div>
+                        </div>
+
+                        <!-- Scenario comparison cards -->
+                        <div class="cc-compare-grid mb-4">
+                            <div class="cc-scenario-card">
+                                <div class="cc-scenario-header">
+                                    <i class="bi bi-dash-circle"></i>
+                                    <span>Minimum Repayments</span>
+                                </div>
+                                <div class="cc-scenario-row">
+                                    <span class="cc-metric-label">First repayment</span>
+                                    <span class="cc-metric-value" id="cc-min-first">—</span>
+                                </div>
+                                <div class="cc-scenario-row">
+                                    <span class="cc-metric-label">Time to pay off</span>
+                                    <span class="cc-metric-value cc-val-rose" id="cc-min-time">—</span>
+                                </div>
+                                <div class="cc-scenario-row">
+                                    <span class="cc-metric-label">Total interest</span>
+                                    <span class="cc-metric-value" id="cc-min-interest">—</span>
+                                </div>
+                                <div class="cc-scenario-row cc-row-total">
+                                    <span class="cc-metric-label">Total paid</span>
+                                    <span class="cc-metric-value" id="cc-min-total">—</span>
+                                </div>
+                            </div>
+
+                            <div class="cc-scenario-card cc-scenario-highlight">
+                                <div class="cc-scenario-header">
+                                    <i class="bi bi-arrow-up-circle"></i>
+                                    <span>Higher Repayments</span>
+                                </div>
+                                <div class="cc-scenario-row">
+                                    <span class="cc-metric-label">Paying per month</span>
+                                    <span class="cc-metric-value cc-val-teal" id="cc-hi-payment">—</span>
+                                </div>
+                                <div class="cc-scenario-row">
+                                    <span class="cc-metric-label">Time to pay off</span>
+                                    <span class="cc-metric-value cc-val-teal" id="cc-hi-time">—</span>
+                                </div>
+                                <div class="cc-scenario-row">
+                                    <span class="cc-metric-label">Total interest</span>
+                                    <span class="cc-metric-value" id="cc-hi-interest">—</span>
+                                </div>
+                                <div class="cc-scenario-row cc-row-total">
+                                    <span class="cc-metric-label">Total paid</span>
+                                    <span class="cc-metric-value" id="cc-hi-total">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Higher repayment slider -->
+                        <div class="cc-slider-wrap mb-4">
+                            <div class="cc-slider-header">
+                                <label class="form-label mb-0" for="cc-slider">
+                                    Higher repayment <span class="cc-metric-label ms-1">/ month</span>
+                                </label>
+                                <div class="cc-payment-input-wrap">
+                                    <span class="cc-payment-prefix">$</span>
+                                    <input type="number" class="cc-payment-input" id="cc-payment-input" min="1" step="1">
+                                </div>
+                            </div>
+                            <div class="cc-slider-track-wrap">
+                                <div class="cc-slider-track-base"></div>
+                                <div class="cc-slider-fill" id="cc-slider-fill"></div>
+                                <input class="cc-slider" id="cc-slider" type="range" value="0" min="0" max="1000">
+                            </div>
+                            <div class="cc-slider-labels">
+                                <span id="cc-slider-min-label">Min</span>
+                                <span id="cc-slider-max-label">Max</span>
+                            </div>
+                        </div>
+
+                        <!-- Stacked bar chart -->
+                        <div class="mc-chart-wrap">
+                            <div class="mc-chart-title">Total Cost Comparison</div>
+                            <div class="cc-chart-container">
+                                <canvas id="cc-chart"></canvas>
+                            </div>
+                            <div class="cc-chart-legend mt-3">
+                                <span class="cc-legend-dot" style="background:#2dd4a8"></span>
+                                <span class="cc-legend-text">Principal</span>
+                                <span class="cc-legend-dot ms-3" style="background:#3b82f6"></span>
+                                <span class="cc-legend-text">Interest</span>
+                            </div>
+                        </div>
+
+                        <p class="mc-disclaimer mt-3">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Estimates only. Assumes no additional spending and a constant interest rate. Not financial advice.
+                        </p>
+                    </div>
+
+                </div>
             </div>
 
         </div>
@@ -347,5 +511,6 @@
 
 {% block page_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/calculator_math.js') }}"></script>
 <script src="{{ url_for('static', filename='js/debt_calculator.js') }}"></script>
 {% endblock %}
