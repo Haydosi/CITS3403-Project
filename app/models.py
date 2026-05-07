@@ -1,9 +1,13 @@
 from app import db
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import CheckConstraint
 from datetime import datetime
 from flask_login import UserMixin
 
+#since datetime.utcnow is deprecated
+#uses this instead
+#because of timezone awarenes or something
+def utc_now():
+    return datetime.now(datetime.UTC)
 
 # User table
 class User(UserMixin, db.Model):
@@ -17,6 +21,6 @@ class User(UserMixin, db.Model):
     last_name = db.Column(db.String(100))
     role = db.Column(db.String(30), nullable=False, default='user')
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow,
-                           onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
+                           onupdate=utc_now)
