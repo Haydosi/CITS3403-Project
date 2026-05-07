@@ -4,10 +4,6 @@ from sqlalchemy import CheckConstraint
 from datetime import datetime
 from flask_login import UserMixin
 
-#simple test model, replace with something else later
-class TestModel(db.Model):
-
-    id = db.Column(db.Integer, primary_key=True)
 
 # User table
 class User(UserMixin, db.Model):
