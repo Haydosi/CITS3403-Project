@@ -1,20 +1,20 @@
 from flask import render_template
-from app import app
+from app.blueprints import main
 
 
 # renders templates
-@app.route("/")
+@main.route("/")
 def dashboard():
     return render_template("dashboard.html")
 
-@app.route("/leaderboard")
+@main.route("/leaderboard")
 def leaderboard():
     return render_template("leaderboard.html")
 
-@app.route("/login")
+@main.route("/login")
 def login():
     return render_template("login.html")
 
-@app.route("/debt-calculator")
+@main.route("/debt-calculator")
 def debt_calculator():
     return render_template("debt_calculator.html")
