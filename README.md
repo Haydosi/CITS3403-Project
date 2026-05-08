@@ -15,6 +15,7 @@ Repo for Project
 
 <h5>For the python virtual environment</h5>
 
+Tested for python 3.12
 
 Use python venv:
 ```bash
