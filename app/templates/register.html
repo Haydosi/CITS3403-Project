@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block sidebar %}{% endblock %}
-{% block title %}MyMoney - Login{% endblock %}
+{% block title %}MyMoney - Register{% endblock %}
 
 {% block page_css %}
 <style>
@@ -22,7 +22,7 @@
 {% block content %}
 <main class="login-page-content">
     <div class="login-card mx-auto">
-        <h1>Login</h1>
+        <h1>Register</h1>
 
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -43,7 +43,7 @@
                 {% endfor %}
             </div>
 
-            <div class="mb-4">
+            <div class="mb-3">
                 {{ form.password.label(class="form-label") }}
                 {{ form.password(class="form-control", placeholder="Enter password") }}
                 {% for error in form.password.errors %}
@@ -51,10 +51,18 @@
                 {% endfor %}
             </div>
 
+            <div class="mb-4">
+                {{ form.confirm_password.label(class="form-label") }}
+                {{ form.confirm_password(class="form-control", placeholder="Confirm password") }}
+                {% for error in form.confirm_password.errors %}
+                    <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+            </div>
+
             {{ form.submit(class="btn btn-primary w-100") }}
         </form>
 
-        <p class="mt-3 text-center">Don't have an account? <a href="{{ url_for('register') }}">Register</a></p>
+        <p class="mt-3 text-center">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
     </div>
 </main>
 {% endblock %}
