@@ -8,7 +8,7 @@ from config import TestingConfig
 class AuthTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.app = create_app(TestConfig)
+        self.app = create_app(TestingConfig())
         self.client = self.app.test_client()
         with self.app.app_context():
             db.create_all()
