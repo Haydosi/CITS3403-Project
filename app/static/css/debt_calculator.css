@@ -1,0 +1,693 @@
+/* ============================================================
+   Debt Calculator — page-specific styles
+   Relies on CSS custom properties from base.css
+============================================================ */
+
+/* ── Calculator Type Switcher ─────────────────────────────── */
+.calc-switcher {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.calc-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: var(--surface-2);
+    color: var(--text-secondary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+}
+
+.calc-tab i {
+    font-size: 1rem;
+}
+
+.calc-tab:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+}
+
+.calc-tab.active {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    border-color: rgba(45, 212, 168, 0.3);
+    box-shadow: 0 0 16px var(--accent-teal-dim);
+}
+
+/* ── Section visibility ───────────────────────────────────── */
+.hidden-section {
+    display: none;
+}
+
+/* ── Calculator form helpers ──────────────────────────────── */
+.calc-form {
+    margin-top: 4px;
+}
+
+.calc-title-icon {
+    color: var(--accent-teal);
+    margin-right: 6px;
+    font-size: 1.05rem;
+}
+
+/* Input with $ prefix or % suffix */
+.input-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-prefix,
+.input-suffix {
+    position: absolute;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.input-prefix { left: 12px; }
+.input-suffix { right: 12px; }
+
+.form-control.with-prefix  { padding-left: 28px; }
+.form-control.with-suffix  { padding-right: 32px; }
+
+/* Side-by-side value + unit selector */
+.input-pair {
+    display: flex;
+    gap: 8px;
+}
+
+.input-pair .form-control {
+    flex: 1;
+}
+
+.term-unit {
+    width: 110px;
+    flex-shrink: 0;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+.calc-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-muted);
+    gap: 12px;
+}
+
+.calc-empty-icon {
+    font-size: 2.8rem;
+    opacity: 0.35;
+    color: var(--accent-teal);
+}
+
+.calc-empty-state p {
+    font-size: 0.875rem;
+    max-width: 280px;
+    line-height: 1.6;
+}
+
+.calc-empty-state strong {
+    color: var(--text-secondary);
+}
+
+/* ── Result grid ──────────────────────────────────────────── */
+.result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.result-grid.hidden {
+    display: none;
+}
+
+.result-card {
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--border-subtle);
+}
+
+.result-card.teal   { background: var(--accent-teal-dim);   border-color: rgba(45, 212, 168, 0.18); }
+.result-card.blue   { background: var(--accent-blue-dim);   border-color: rgba(59, 130, 246, 0.18); }
+.result-card.rose   { background: var(--accent-rose-dim);   border-color: rgba(244, 63, 94, 0.18);  }
+.result-card.amber  { background: var(--accent-amber-dim);  border-color: rgba(245, 158, 11, 0.18); }
+.result-card.violet { background: var(--accent-violet-dim); border-color: rgba(139, 92, 246, 0.18); }
+
+.result-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+}
+
+.result-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+}
+
+.result-card.teal  .result-value { color: var(--accent-teal);  }
+.result-card.rose  .result-value { color: var(--accent-rose);  }
+.result-card.amber .result-value { color: var(--accent-amber); }
+.result-card.blue  .result-value { color: var(--accent-blue);  }
+
+/* ── Chart placeholder ────────────────────────────────────── */
+.chart-placeholder {
+    position: relative;
+    min-height: 180px;
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-subtle);
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chart-placeholder canvas {
+    display: none; /* shown by JS once it renders a real chart */
+}
+
+.chart-placeholder-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 12px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .calc-switcher { flex-direction: column; }
+    .calc-tab      { justify-content: center; }
+
+    .result-grid   { grid-template-columns: 1fr; }
+}
+
+/* ── Mortgage Calculator ──────────────────────────────────── */
+.mc-mode-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+}
+
+.mc-mode-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 8px 6px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-smooth);
+    white-space: nowrap;
+}
+
+.mc-mode-btn i { font-size: 0.85rem; }
+
+.mc-mode-btn:hover {
+    color: var(--text-secondary);
+    background: var(--surface-3);
+}
+
+.mc-mode-btn.active {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    box-shadow: 0 0 12px var(--accent-teal-dim);
+}
+
+.mc-panel-desc {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.mc-optional {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.mc-yrs-suffix {
+    font-size: 0.75rem;
+    right: 10px;
+}
+
+/* ── Hero result ──────────────────────────────────────────── */
+.mc-hero {
+    background: linear-gradient(135deg, var(--accent-teal-dim), var(--accent-blue-dim));
+    border: 1px solid rgba(45, 212, 168, 0.18);
+    border-radius: var(--radius-md);
+    padding: 24px 20px;
+    text-align: center;
+}
+
+.mc-hero-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.mc-hero-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent-teal);
+    line-height: 1.1;
+    margin-bottom: 6px;
+    word-break: break-word;
+}
+
+.mc-hero-sub {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* ── Inline error ─────────────────────────────────────────── */
+.mc-error {
+    font-size: 0.78rem;
+    color: var(--accent-rose);
+    padding: 8px 12px;
+    background: var(--accent-rose-dim);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(244, 63, 94, 0.18);
+}
+
+/* ── Chart ────────────────────────────────────────────────── */
+.mc-chart-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.mc-chart-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.mc-chart-body {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    flex-wrap: wrap;
+}
+
+.mc-chart-body canvas {
+    max-width: 150px;
+    max-height: 150px;
+    flex-shrink: 0;
+}
+
+.mc-chart-legend {
+    flex: 1;
+    min-width: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mc-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mc-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.mc-legend-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: block;
+}
+
+.mc-legend-amount {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: block;
+}
+
+/* ── Disclaimer ───────────────────────────────────────────── */
+.mc-disclaimer {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* ── Mortgage responsive ──────────────────────────────────── */
+@media (max-width: 575.98px) {
+    .mc-mode-tabs   { flex-direction: column; }
+    .mc-hero-value  { font-size: 1.8rem; }
+    .mc-chart-body  { justify-content: center; }
+}
+
+/* ============================================================
+   Credit Card Calculator
+============================================================ */
+
+/* ── Advanced settings toggle ─────────────────────────────── */
+.cc-adv-wrap {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 12px;
+}
+
+.cc-adv-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 6px 0;
+    color: var(--text-muted);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--transition-smooth);
+}
+
+.cc-adv-toggle:hover { color: var(--text-secondary); }
+
+.cc-adv-toggle i {
+    font-size: 0.75rem;
+    transition: transform var(--transition-smooth);
+}
+
+.cc-adv-toggle[aria-expanded="true"] i {
+    transform: rotate(180deg);
+}
+
+.cc-adv-body {
+    padding-top: 4px;
+}
+
+/* ── Savings banner ───────────────────────────────────────── */
+.cc-savings-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: linear-gradient(135deg, var(--accent-teal-dim), var(--accent-blue-dim));
+    border: 1px solid rgba(45, 212, 168, 0.2);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
+}
+
+.cc-savings-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+}
+
+.cc-savings-amount {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--accent-teal);
+    white-space: nowrap;
+}
+
+/* ── Comparison cards ─────────────────────────────────────── */
+.cc-compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.cc-scenario-card {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+}
+
+.cc-scenario-highlight {
+    background: var(--accent-teal-dim);
+    border-color: rgba(45, 212, 168, 0.2);
+}
+
+.cc-scenario-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.cc-scenario-highlight .cc-scenario-header {
+    color: var(--accent-teal);
+}
+
+.cc-scenario-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.cc-row-total {
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 8px;
+    margin-top: 4px;
+    margin-bottom: 0;
+}
+
+.cc-metric-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.cc-metric-value {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.cc-val-teal { color: var(--accent-teal); }
+.cc-val-rose { color: var(--accent-rose); }
+
+/* ── Slider ───────────────────────────────────────────────── */
+.cc-slider-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+}
+
+.cc-slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.cc-payment-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+}
+
+.cc-payment-prefix {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.cc-payment-input {
+    width: 68px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.cc-payment-input:focus { outline: none; }
+.cc-payment-input::-webkit-inner-spin-button,
+.cc-payment-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.cc-payment-input[type=number] { -moz-appearance: textfield; }
+
+.cc-slider-track-wrap {
+    position: relative;
+    height: 40px;
+}
+
+.cc-slider-track-base {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    background: var(--surface-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    z-index: 0;
+}
+
+.cc-slider-fill {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 8px;
+    background: var(--accent-teal);
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 1;
+    width: 0;
+    transition: width 0.05s linear;
+}
+
+.cc-slider {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.cc-slider:focus { outline: none; }
+
+.cc-slider::-webkit-slider-runnable-track {
+    height: 8px;
+    background: transparent;
+    border-radius: 8px;
+}
+
+.cc-slider::-moz-range-track {
+    height: 8px;
+    background: transparent;
+    border: none;
+}
+
+.cc-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: 2px solid var(--surface-0);
+    box-shadow: 0 0 8px var(--accent-teal-glow);
+    margin-top: -7px;
+    cursor: pointer;
+}
+
+.cc-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent-teal);
+    border: 2px solid var(--surface-0);
+    box-shadow: 0 0 8px var(--accent-teal-glow);
+    cursor: pointer;
+    border: 2px solid var(--surface-0);
+}
+
+.cc-slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ── Chart ────────────────────────────────────────────────── */
+.cc-chart-container {
+    position: relative;
+    height: 220px;
+}
+
+.cc-chart-legend {
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    gap: 5px;
+}
+
+.cc-legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.cc-legend-text { margin-right: 4px; }
+
+/* ── Credit card responsive ───────────────────────────────── */
+@media (max-width: 575.98px) {
+    .cc-compare-grid    { grid-template-columns: 1fr; }
+    .cc-savings-banner  { flex-direction: column; text-align: center; }
+    .cc-savings-amount  { font-size: 1.6rem; }
+}

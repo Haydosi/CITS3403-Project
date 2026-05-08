@@ -38,7 +38,8 @@ this belongs in the sidebar partial
             Leaderboard</a>
         <a href="#" class="nav-link"><i class="bi bi-people"></i> Groups</a>
         <div class="nav-section-label">Tools</div>
-        <a href="#" class="nav-link"><i class="bi bi-calculator"></i> Debt Calculator</a>
+        <a href="{{ url_for('debt_calculator') }}"
+            class="nav-link {{ 'active' if request.endpoint == 'debt_calculator' else '' }}"><i class="bi bi-calculator"></i> Debt Calculator</a>
         <a href="#" class="nav-link"><i class="bi bi-robot"></i> AI Advisor</a>
     </nav>
     <!-- Logged-in user info at the bottom of the sidebar -->

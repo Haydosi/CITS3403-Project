@@ -6,18 +6,22 @@ from app.models import User
 from app.forms import LoginForm, RegisterForm
 
 
+# renders templates
 @app.route("/")
 @login_required # Comment this line to bypass the login
 def dashboard():
     return render_template("dashboard.html")
-
 
 @app.route("/leaderboard")
 @login_required # Comment this line to bypass the login
 def leaderboard():
     return render_template("leaderboard.html")
 
+@app.route("/debt-calculator")
+def debt_calculator():
+    return render_template("debt_calculator.html")
 
+# ======== Authentication ========
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
@@ -57,3 +61,4 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for("login"))
+
