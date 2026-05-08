@@ -1,13 +1,13 @@
 from app import db
 from sqlalchemy import CheckConstraint
-from datetime import datetime
+from datetime import datetime, UTC
 from flask_login import UserMixin
 
 #since datetime.utcnow is deprecated
 #uses this instead
 #because of timezone awarenes or something
 def utc_now():
-    return datetime.now(datetime.UTC)
+    return datetime.now(UTC)
 
 # User table
 class User(UserMixin, db.Model):
