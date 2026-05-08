@@ -4,7 +4,6 @@ from app.models import User
 from config import TestingConfig
 
 
-
 class AuthTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -52,11 +51,13 @@ class AuthTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Login", response.data)
         with self.app.app_context():
-            self.assertIsNotNone(User.query.filter_by(email="new@example.com").first())
+            self.assertIsNotNone(User.query.filter_by(
+                email="new@example.com").first())
 
     def test_register_duplicate_email(self):
         with self.app.app_context():
-            u = User(email="existing@example.com", username="existing@example.com")
+            u = User(email="existing@example.com",
+                     username="existing@example.com")
             u.set_password("pass")
             db.session.add(u)
             db.session.commit()
