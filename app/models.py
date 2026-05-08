@@ -1,13 +1,22 @@
 from app import db
 from sqlalchemy import CheckConstraint
-from datetime import datetime
+from datetime import datetime, UTC
 from flask_login import UserMixin
+from enum import Enum
 
-#since datetime.utcnow is deprecated
-#uses this instead
-#because of timezone awarenes or something
+
+# since datetime.utcnow is deprecated
+# uses this instead
+# because of timezone awarenes or something
 def utc_now():
-    return datetime.now(datetime.UTC)
+    return datetime.now(UTC)
+
+
+class GroupRole(Enum):
+    MEMBER = "member"
+    ADMIN = "admin"
+    OWNER = "owner"
+
 
 # User table
 class User(UserMixin, db.Model):
@@ -24,3 +33,37 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
                            onupdate=utc_now)
+
+
+# group table
+class Group(db.Model):
+    __tablename__ = "groups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    group_name = db.Column(db.String(50), nullable=False, unique=False)
+
+
+# user group linking table
+class UserGroupMembership(db.Model):
+    __tablename__ = "user_group_memberships"
+
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "group_id",
+                            name="unique_user_group_membership"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+    )
+
+    group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("groups.id"),
+        nullable=False,
+    )
+
+    user_role = db.Column(db.Enum(GroupRole), nullable=False,
+                          default=GroupRole.MEMBER, unique=False)
