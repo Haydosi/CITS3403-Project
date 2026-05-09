@@ -16,6 +16,7 @@ login = LoginManager(app)
 login.login_view = "login"
 
 from app import models, routes
-from app.api import api as api_bp
+from app.api import public_api, private_api
 
-app.register_blueprint(api_bp)
+app.register_blueprint(public_api)
+app.register_blueprint(private_api)

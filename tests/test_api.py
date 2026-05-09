@@ -27,9 +27,9 @@ class ApiTestCase(unittest.TestCase):
             db.drop_all()
 
     def _register_user(self, email="user@example.com", password="password123"):
-        # Helper to register a user using the API endpoint.
+        # Helper to register a user using the public API endpoint.
         return self.client.post(
-            "/api/auth/register",
+            "/api/public/auth/register",
             json={
                 "email": email,
                 "password": password,
@@ -38,9 +38,9 @@ class ApiTestCase(unittest.TestCase):
         )
 
     def _login_user(self, email="user@example.com", password="password123"):
-        # Helper to log in a user using the API endpoint.
+        # Helper to log in a user using the public API endpoint.
         return self.client.post(
-            "/api/auth/login",
+            "/api/public/auth/login",
             json={"email": email, "password": password},
         )
 
@@ -70,29 +70,29 @@ class ApiTestCase(unittest.TestCase):
         # Incorrect password should fail with a 401 error.
         self._register_user()
         response = self.client.post(
-            "/api/auth/login",
+            "/api/public/auth/login",
             json={"email": "user@example.com", "password": "wrongpass"},
         )
         self.assertEqual(response.status_code, 401)
         self.assertIn("Invalid email or password", response.json["error"])
 
     def test_current_user_api_requires_auth(self):
-        # auth/user should require authentication.
-        response = self.client.get("/api/auth/user")
+        # Private auth/user should require authentication.
+        response = self.client.get("/api/private/auth/user")
         self.assertEqual(response.status_code, 401)
 
     def test_current_user_api_returns_authenticated_user(self):
-        # After login, auth/user should return current user information.
+        # After login, private auth/user should return current user information.
         self._register_user()
         self._login_user()
-        response = self.client.get("/api/auth/user")
+        response = self.client.get("/api/private/auth/user")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["user"]["email"], "user@example.com")
 
     def test_debt_loan_repayments_api(self):
         # The repayment calculator should return payment summary values.
         response = self.client.post(
-            "/api/debt/loan/repayments",
+            "/api/public/debt/loan/repayments",
             json={
                 "amount": 10000,
                 "rate": 5,
@@ -109,7 +109,7 @@ class ApiTestCase(unittest.TestCase):
     def test_debt_loan_borrow_api(self):
         # The borrowing capacity endpoint should return a principal amount.
         response = self.client.post(
-            "/api/debt/loan/borrow",
+            "/api/public/debt/loan/borrow",
             json={
                 "payment": 500,
                 "rate": 5,
@@ -125,7 +125,7 @@ class ApiTestCase(unittest.TestCase):
     def test_debt_loan_sooner_api(self):
         # The repay-sooner endpoint should estimate repayment duration.
         response = self.client.post(
-            "/api/debt/loan/sooner",
+            "/api/public/debt/loan/sooner",
             json={
                 "amount": 10000,
                 "payment": 300,

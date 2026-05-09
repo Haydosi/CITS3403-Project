@@ -5,9 +5,12 @@ from flask_login import current_user, login_user, logout_user
 from app import db
 from app.models import User
 
-# API blueprint for JSON endpoints.
-# All routes in this file are mounted under /api.
-api = Blueprint("api", __name__, url_prefix="/api")
+# Public API routes are intended for external or unauthenticated clients.
+# These endpoints can be consumed by frontend forms or third-party apps.
+public_api = Blueprint("public_api", __name__, url_prefix="/api/public")
+
+# Private API routes require authentication and are for internal app use.
+private_api = Blueprint("private_api", __name__, url_prefix="/api/private")
 
 
 def json_error(message, status=400):
@@ -49,9 +52,9 @@ def mc_nper(rate, pmt, pv):
     return math.log(pmt / denominator) / math.log(1.0 + rate)
 
 
-@api.route("/auth/login", methods=["POST"])
+@public_api.route("/auth/login", methods=["POST"])
 def api_login():
-    # Login endpoint for API clients.
+    # Public login endpoint.
     payload, error = require_json_payload()
     if error:
         return error
@@ -69,9 +72,9 @@ def api_login():
     return jsonify(success=True, user=user.to_dict())
 
 
-@api.route("/auth/register", methods=["POST"])
+@public_api.route("/auth/register", methods=["POST"])
 def api_register():
-    # Register a new user account over JSON.
+    # Public registration endpoint.
     payload, error = require_json_payload()
     if error:
         return error
@@ -93,34 +96,35 @@ def api_register():
     return jsonify(success=True, user=user.to_dict()), 201
 
 
-@api.route("/auth/logout", methods=["POST", "GET"])
+@private_api.route("/auth/logout", methods=["POST", "GET"])
+@public_api.route("/auth/logout", methods=["POST", "GET"])
 def api_logout():
-    # Logout endpoint; works for both POST and GET.
+    # Logout can be called from either public or private endpoints.
     if current_user.is_authenticated:
         logout_user()
     return jsonify(success=True)
 
 
-@api.route("/auth/user", methods=["GET"])
+@private_api.route("/auth/user", methods=["GET"])
 def api_current_user():
-    # Return the current authenticated user.
+    # Private endpoint to return the current authenticated user.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
     return jsonify(user=current_user.to_dict())
 
 
-@api.route("/users", methods=["GET"])
+@private_api.route("/users", methods=["GET"])
 def api_users():
-    # List all users. Protected endpoint.
+    # Private endpoint to list all users.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
     users = User.query.order_by(User.id.asc()).all()
     return jsonify(users=[user.to_dict() for user in users])
 
 
-@api.route("/users/<int:user_id>", methods=["GET"])
+@private_api.route("/users/<int:user_id>", methods=["GET"])
 def api_user_detail(user_id):
-    # Return a single user by id.
+    # Private endpoint to return a single user by id.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
     user = User.query.get(user_id)
@@ -129,9 +133,9 @@ def api_user_detail(user_id):
     return jsonify(user=user.to_dict())
 
 
-@api.route("/dashboard", methods=["GET"])
+@private_api.route("/dashboard", methods=["GET"])
 def api_dashboard():
-    # Dashboard summary data for authenticated users.
+    # Private dashboard summary endpoint.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
     total_users = User.query.count()
@@ -140,18 +144,18 @@ def api_dashboard():
     return jsonify(total_users=total_users, active_users=active_users, latest_users=latest_users)
 
 
-@api.route("/leaderboard", methods=["GET"])
+@private_api.route("/leaderboard", methods=["GET"])
 def api_leaderboard():
-    # Leaderboard endpoint; currently returns recent user accounts.
+    # Private leaderboard endpoint.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
     users = User.query.order_by(User.created_at.desc()).limit(10).all()
     return jsonify(leaderboard=[u.to_dict() for u in users])
 
 
-@api.route("/debt/loan/repayments", methods=["POST"])
+@public_api.route("/debt/loan/repayments", methods=["POST"])
 def api_debt_loan_repayments():
-    # Loan repayment calculator endpoint.
+    # Public loan repayment calculator endpoint.
     payload, error = require_json_payload()
     if error:
         return error
@@ -197,9 +201,9 @@ def api_debt_loan_repayments():
     )
 
 
-@api.route("/debt/loan/borrow", methods=["POST"])
+@public_api.route("/debt/loan/borrow", methods=["POST"])
 def api_debt_loan_borrow():
-    # Borrowing capacity endpoint.
+    # Public borrowing capacity endpoint.
     payload, error = require_json_payload()
     if error:
         return error
@@ -251,9 +255,9 @@ def api_debt_loan_borrow():
     )
 
 
-@api.route("/debt/loan/sooner", methods=["POST"])
+@public_api.route("/debt/loan/sooner", methods=["POST"])
 def api_debt_loan_sooner():
-    # Loan payoff estimator endpoint.
+    # Public loan payoff estimator endpoint.
     payload, error = require_json_payload()
     if error:
         return error
