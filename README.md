@@ -57,3 +57,12 @@ to update the database
 
 You also need to run this when pulling changed migrations
 (since the database is in .gitignore)
+
+
+<br>
+<h5>Testing</h5>
+
+For running unit tests:
+```bash
+python -m unittest
+```
