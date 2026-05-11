@@ -1,32 +1,26 @@
 import unittest
-from app import app, db
+from app import create_app, db
 from app.models import User
-
-
-class TestConfig:
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    WTF_CSRF_ENABLED = False
-    SECRET_KEY = "test-secret-key"
+from config import TestingConfig
 
 
 class AuthTestCase(unittest.TestCase):
 
     def setUp(self):
-        app.config.from_object(TestConfig)
-        self.client = app.test_client()
-        with app.app_context():
+        self.app = create_app(TestingConfig())
+        self.client = self.app.test_client()
+        with self.app.app_context():
             db.create_all()
 
     def tearDown(self):
-        with app.app_context():
+        with self.app.app_context():
             db.session.remove()
             db.drop_all()
 
     # --- User model ---
 
     def test_password_hashing(self):
-        with app.app_context():
+        with self.app.app_context():
             u = User(email="a@example.com", username="a@example.com")
             u.set_password("hunter2")
             self.assertNotEqual(u.password_hash, "hunter2")
@@ -34,7 +28,7 @@ class AuthTestCase(unittest.TestCase):
             self.assertFalse(u.check_password("wrong"))
 
     def test_password_hash_is_salted(self):
-        with app.app_context():
+        with self.app.app_context():
             u1 = User(email="a@example.com", username="a@example.com")
             u2 = User(email="b@example.com", username="b@example.com")
             u1.set_password("same")
@@ -56,12 +50,14 @@ class AuthTestCase(unittest.TestCase):
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Login", response.data)
-        with app.app_context():
-            self.assertIsNotNone(User.query.filter_by(email="new@example.com").first())
+        with self.app.app_context():
+            self.assertIsNotNone(User.query.filter_by(
+                email="new@example.com").first())
 
     def test_register_duplicate_email(self):
-        with app.app_context():
-            u = User(email="existing@example.com", username="existing@example.com")
+        with self.app.app_context():
+            u = User(email="existing@example.com",
+                     username="existing@example.com")
             u.set_password("pass")
             db.session.add(u)
             db.session.commit()
@@ -88,13 +84,13 @@ class AuthTestCase(unittest.TestCase):
             "confirm_password": "",
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        with app.app_context():
+        with self.app.app_context():
             self.assertEqual(User.query.count(), 0)
 
     # --- /login ---
 
     def _create_user(self, email="user@example.com", password="password123"):
-        with app.app_context():
+        with self.app.app_context():
             u = User(email=email, username=email)
             u.set_password(password)
             db.session.add(u)
