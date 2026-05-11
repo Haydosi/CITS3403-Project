@@ -26,4 +26,8 @@ def create_app(config):
     return flask_app
 
 
-from app import models
+from app import models, routes
+from app.api import public_api, private_api
+
+app.register_blueprint(public_api)
+app.register_blueprint(private_api)

@@ -19,7 +19,8 @@ class GroupRole(Enum):
     OWNER = "owner"
 
 
-# User table
+# User table stores application users and authentication information.
+# This model is also used by Flask-Login via UserMixin.
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
 
@@ -36,9 +37,11 @@ class User(UserMixin, db.Model):
                            onupdate=utc_now)
 
     def set_password(self, password):
+        # Hash a raw password before storing it.
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
+        # Verify a raw password against the stored hash.
         return check_password_hash(self.password_hash, password)
 
     @property
@@ -48,17 +51,27 @@ class User(UserMixin, db.Model):
 
 @login.user_loader
 def load_user(id):
+    # Flask-Login callback used to restore a user from the session.
     return db.session.get(User, int(id))
 
-# group table
+# Group table holds optional group metadata.
+# It can be used to organize users into named groups.
 class Group(db.Model):
     __tablename__ = "groups"
 
     id = db.Column(db.Integer, primary_key=True)
     group_name = db.Column(db.String(50), nullable=False, unique=False)
 
+    def to_dict(self):
+        # JSON-friendly serialization for group records.
+        return {
+            "id": self.id,
+            "group_name": self.group_name,
+        }
+
 
 # user group linking table
+# Associates a user with a group and stores the member's role.
 class UserGroupMembership(db.Model):
     __tablename__ = "user_group_memberships"
 
@@ -82,3 +95,12 @@ class UserGroupMembership(db.Model):
 
     user_role = db.Column(db.Enum(GroupRole), nullable=False,
                           default=GroupRole.MEMBER, unique=False)
+
+    def to_dict(self):
+        # Serialize membership records for API responses.
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "group_id": self.group_id,
+            "user_role": self.user_role.value if self.user_role else None,
+        }

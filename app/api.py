@@ -134,6 +134,8 @@ def api_users():
     error = require_admin()
     if error:
         return error
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
     users = User.query.order_by(User.id.asc()).all()
     return jsonify(users=[user.to_dict() for user in users])
 
