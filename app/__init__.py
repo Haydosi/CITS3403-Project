@@ -18,16 +18,15 @@ def create_app(config):
     migrate.init_app(flask_app, db)
     login.init_app(flask_app)
     
-    #init routes
-    
+    # init routes
     from app.blueprints import main
+    from app.api import public_api, private_api
+
     flask_app.register_blueprint(main)
+    flask_app.register_blueprint(public_api)
+    flask_app.register_blueprint(private_api)
     
     return flask_app
 
 
 from app import models, routes
-from app.api import public_api, private_api
-
-app.register_blueprint(public_api)
-app.register_blueprint(private_api)
