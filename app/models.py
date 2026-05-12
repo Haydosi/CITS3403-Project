@@ -114,3 +114,39 @@ class UserGroupMembership(db.Model):
             "group_id": self.group_id,
             "user_role": self.user_role.value if self.user_role else None,
         }
+
+
+# Transaction table tracks user savings and financial activities.
+class Transaction(db.Model):
+    __tablename__ = "transactions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+    )
+    group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("groups.id"),
+        nullable=True,  # Optional: can be part of a group
+    )
+    amount = db.Column(db.Float, nullable=False)  # Amount saved (positive) or spent (negative)
+    description = db.Column(db.String(255))
+    transaction_type = db.Column(db.String(50), nullable=False, default="savings")  # savings, expense, transfer, etc.
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
+                           onupdate=utc_now)
+
+    def to_dict(self):
+        # Convert transaction to JSON-friendly dictionary.
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "group_id": self.group_id,
+            "amount": self.amount,
+            "description": self.description,
+            "transaction_type": self.transaction_type,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }

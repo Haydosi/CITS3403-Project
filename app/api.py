@@ -2,8 +2,9 @@ import math
 
 from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
+from sqlalchemy import func
 from app import db
-from app.models import User
+from app.models import User, Transaction
 
 # Public API routes are intended for external or unauthenticated clients.
 # These endpoints can be consumed by frontend forms or third-party apps.
@@ -146,11 +147,68 @@ def api_dashboard():
 
 @private_api.route("/leaderboard", methods=["GET"])
 def api_leaderboard():
-    # Private leaderboard endpoint.
+    # Private leaderboard endpoint - returns top savers globally.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-    users = User.query.order_by(User.created_at.desc()).limit(10).all()
-    return jsonify(leaderboard=[u.to_dict() for u in users])
+    
+    # Query to calculate total savings per user
+    leaderboard_query = db.session.query(
+        User.id,
+        User.username,
+        User.email,
+        User.first_name,
+        User.last_name,
+        func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
+    ).outerjoin(Transaction, User.id == Transaction.user_id).group_by(User.id).order_by(
+        func.coalesce(func.sum(Transaction.amount), 0).desc()
+    ).limit(10)
+    
+    leaderboard = []
+    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+        leaderboard.append({
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "total_saved": float(total_saved) if total_saved else 0,
+        })
+    
+    return jsonify(leaderboard=leaderboard)
+
+
+@private_api.route("/leaderboard/family/<int:group_id>", methods=["GET"])
+def api_family_leaderboard(group_id):
+    # Private family leaderboard endpoint - returns top savers in a specific group.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    
+    # Query to calculate total savings per user in a specific group
+    leaderboard_query = db.session.query(
+        User.id,
+        User.username,
+        User.email,
+        User.first_name,
+        User.last_name,
+        func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
+    ).outerjoin(Transaction, (User.id == Transaction.user_id) & (Transaction.group_id == group_id)).group_by(
+        User.id
+    ).filter(Transaction.group_id == group_id).order_by(
+        func.coalesce(func.sum(Transaction.amount), 0).desc()
+    )
+    
+    leaderboard = []
+    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+        leaderboard.append({
+            "id": user_id,
+            "username": username,
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "total_saved": float(total_saved) if total_saved else 0,
+        })
+    
+    return jsonify(leaderboard=leaderboard)
 
 
 @public_api.route("/debt/loan/repayments", methods=["POST"])

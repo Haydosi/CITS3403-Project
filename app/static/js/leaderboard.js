@@ -1,12 +1,6 @@
-// Demo leaderboard data source used by both World and Family sections.
-const PLAYERS = [
-    { name: "Aria K.", saved: 5120, streak: 14, wins: 5, avatar: "AK", family: false },
-    { name: "Noah P.", saved: 4760, streak: 10, wins: 2, avatar: "NP", family: false },
-    { name: "Scout M.", saved: 4280, streak: 11, wins: 3, avatar: "SM", family: true },
-    { name: "Liam J.", saved: 3890, streak: 8, wins: 1, avatar: "LJ", family: true },
-    { name: "Mia T.", saved: 3535, streak: 6, wins: 1, avatar: "MT", family: true },
-    { name: "Ethan R.", saved: 3010, streak: 5, wins: 0, avatar: "ER", family: true }
-];
+// Real leaderboard data is fetched from the backend API
+let worldLeaderboard = [];
+let familyLeaderboard = [];
 
 const topSaversCards = document.getElementById("topSaversCards");
 const familyLeaderboardBody = document.getElementById("familyLeaderboardBody");
@@ -25,27 +19,55 @@ function currency(amount) {
     return `$${amount.toLocaleString("en-AU")}`;
 }
 
+async function fetchLeaderboardData() {
+    try {
+        // Fetch world leaderboard
+        const worldResponse = await fetch("/api/private/leaderboard");
+        if (worldResponse.ok) {
+            const data = await worldResponse.json();
+            worldLeaderboard = data.leaderboard || [];
+        } else {
+            console.error("Failed to fetch world leaderboard");
+            worldLeaderboard = [];
+        }
+        
+        // Fetch family leaderboard (assuming group_id = 1 for now, can be made dynamic)
+        const familyResponse = await fetch("/api/private/leaderboard/family/1");
+        if (familyResponse.ok) {
+            const data = await familyResponse.json();
+            familyLeaderboard = data.leaderboard || [];
+        } else {
+            console.warn("No family group data available");
+            familyLeaderboard = [];
+        }
+    } catch (error) {
+        console.error("Error fetching leaderboard data:", error);
+        worldLeaderboard = [];
+        familyLeaderboard = [];
+    }
+}
+
 function renderTopSavers() {
-    // Build the top-3 global saver cards.
-    const sorted = [...PLAYERS].sort((a, b) => b.saved - a.saved);
-    const topThree = sorted.slice(0, 3);
-    const totalTop = topThree.reduce((sum, person) => sum + person.saved, 0);
+    // Build the top-3 global saver cards from real data.
+    const topThree = worldLeaderboard.slice(0, 3);
+    const totalTop = topThree.reduce((sum, person) => sum + person.total_saved, 0);
 
     topSaversCards.innerHTML = "";
     topThree.forEach((person, idx) => {
-        const percentage = totalTop ? Math.round((person.saved / totalTop) * 100) : 0;
+        const percentage = totalTop ? Math.round((person.total_saved / totalTop) * 100) : 0;
+        const displayName = person.first_name || person.username || "Anonymous";
         topSaversCards.innerHTML += `
             <div class="col-lg-4">
                 <div class="stat-card savings">
                     <div class="stat-label">#${idx + 1} Top Saver</div>
                     <div class="leader-name-wrap">
-                        <div class="user-avatar">${person.avatar}</div>
+                        <div class="user-avatar">${displayName.substring(0, 2).toUpperCase()}</div>
                         <div>
-                            <div class="podium-name">${person.name}</div>
-                            <small class="page-subtitle">${person.streak} week streak</small>
+                            <div class="podium-name">${displayName}</div>
+                            <small class="page-subtitle">${person.email}</small>
                         </div>
                     </div>
-                    <div class="stat-value">${currency(person.saved)}</div>
+                    <div class="stat-value">${currency(person.total_saved)}</div>
                     <div class="percentage-under">${percentage}% of top-3 savings</div>
                 </div>
             </div>`;
@@ -53,27 +75,27 @@ function renderTopSavers() {
 }
 
 function renderFamilySection() {
-    // Build the family-only ranking table.
-    const familyPlayers = PLAYERS.filter((player) => player.family).sort((a, b) => b.saved - a.saved);
-    const familyTotal = familyPlayers.reduce((sum, player) => sum + player.saved, 0);
-    familyCount.textContent = `${familyPlayers.length} members`;
+    // Build the family-only ranking table from real data.
+    const familyTotal = familyLeaderboard.reduce((sum, player) => sum + player.total_saved, 0);
+    familyCount.textContent = `${familyLeaderboard.length} members`;
     familyLeaderboardBody.innerHTML = "";
 
-    familyPlayers.forEach((player, index) => {
-        const share = familyTotal ? Math.round((player.saved / familyTotal) * 100) : 0;
+    familyLeaderboard.forEach((player, index) => {
+        const share = familyTotal ? Math.round((player.total_saved / familyTotal) * 100) : 0;
+        const displayName = player.first_name || player.username || "Anonymous";
         familyLeaderboardBody.innerHTML += `
             <tr>
                 <td>#${index + 1}</td>
                 <td>
                     <div class="leader-name-wrap">
-                        <div class="user-avatar">${player.avatar}</div>
-                        <div>${player.name}</div>
+                        <div class="user-avatar">${displayName.substring(0, 2).toUpperCase()}</div>
+                        <div>${displayName}</div>
                     </div>
                 </td>
-                <td class="text-end"><strong>${currency(player.saved)}</strong></td>
+                <td class="text-end"><strong>${currency(player.total_saved)}</strong></td>
                 <td class="text-end">${share}%</td>
-                <td class="text-end">${player.streak} weeks</td>
-                <td class="text-end">${player.wins}</td>
+                <td class="text-end">-</td>
+                <td class="text-end">-</td>
             </tr>`;
     });
 }
@@ -119,4 +141,7 @@ familyTabBtn.addEventListener("click", () => {
     updateSectionView();
 });
 
-render();
+// Fetch data and render on page load
+fetchLeaderboardData().then(() => {
+    render();
+});
