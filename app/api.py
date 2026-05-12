@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 from app import db
-from app.models import User, Transaction
+from app.models import User, Transaction, FamilyMember, FamilyTransaction
 
 # Public API routes are intended for external or unauthenticated clients.
 # These endpoints can be consumed by frontend forms or third-party apps.
@@ -179,35 +179,43 @@ def api_leaderboard():
 
 @private_api.route("/leaderboard/family/<int:group_id>", methods=["GET"])
 def api_family_leaderboard(group_id):
-    # Private family leaderboard endpoint - returns top savers in a specific group.
+    # Private family leaderboard endpoint - returns top savers in a specific family group.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-    
-    # Query to calculate total savings per user in a specific group
+
     leaderboard_query = db.session.query(
-        User.id,
-        User.username,
-        User.email,
-        User.first_name,
-        User.last_name,
-        func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
-    ).outerjoin(Transaction, (User.id == Transaction.user_id) & (Transaction.group_id == group_id)).group_by(
-        User.id
-    ).filter(Transaction.group_id == group_id).order_by(
-        func.coalesce(func.sum(Transaction.amount), 0).desc()
-    )
-    
+        FamilyMember.id,
+        FamilyMember.global_user_id,
+        FamilyMember.first_name,
+        FamilyMember.last_name,
+        FamilyMember.email,
+        func.coalesce(func.sum(FamilyTransaction.amount), 0).label('total_saved')
+    ).outerjoin(
+        FamilyTransaction,
+        FamilyMember.id == FamilyTransaction.family_member_id
+    ).filter(
+        FamilyMember.family_group_id == group_id
+    ).group_by(
+        FamilyMember.id,
+        FamilyMember.global_user_id,
+        FamilyMember.first_name,
+        FamilyMember.last_name,
+        FamilyMember.email
+    ).order_by(
+        func.coalesce(func.sum(FamilyTransaction.amount), 0).desc()
+    ).limit(10)
+
     leaderboard = []
-    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+    for member_id, global_user_id, first_name, last_name, email, total_saved in leaderboard_query:
         leaderboard.append({
-            "id": user_id,
-            "username": username,
-            "email": email,
+            "id": member_id,
+            "global_user_id": global_user_id,
             "first_name": first_name,
             "last_name": last_name,
+            "email": email,
             "total_saved": float(total_saved) if total_saved else 0,
         })
-    
+
     return jsonify(leaderboard=leaderboard)
 
 

@@ -131,7 +131,7 @@ class Transaction(db.Model):
         db.ForeignKey("groups.id"),
         nullable=True,  # Optional: can be part of a group
     )
-    amount = db.Column(db.Float, nullable=False)  # Amount saved (positive) or spent (negative)
+    amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)  # Amount saved (positive) or spent (negative)
     description = db.Column(db.String(255))
     transaction_type = db.Column(db.String(50), nullable=False, default="savings")  # savings, expense, transfer, etc.
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
@@ -243,7 +243,7 @@ class FamilyTransaction(db.Model):
         db.ForeignKey("family_members.id"),
         nullable=False
     )
-    amount = db.Column(db.Float, nullable=False)
+    amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)
     description = db.Column(db.String(255))
     transaction_type = db.Column(db.String(50), nullable=False, default="savings")
     recorded_at = db.Column(db.DateTime, nullable=False, default=utc_now)
@@ -271,8 +271,8 @@ class FamilyGoal(db.Model):
         nullable=False
     )
     goal_name = db.Column(db.String(100), nullable=False)
-    target_amount = db.Column(db.Float, nullable=False)
-    current_amount = db.Column(db.Float, default=0)
+    target_amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)
+    current_amount = db.Column(db.Numeric(precision=12, scale=2), default=0)
     deadline = db.Column(db.Date)
     status = db.Column(db.String(20), default="active")  # active, completed, cancelled
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
