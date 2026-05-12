@@ -2,7 +2,7 @@ from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-
+from app import models, routes
 from config import Config
 
 
@@ -25,12 +25,12 @@ def create_app(config):
     flask_app.register_blueprint(main)
     flask_app.register_blueprint(public_api)
     flask_app.register_blueprint(private_api)
-    
 
-    
+
+
     return flask_app
 
 
-from app import models, routes
+
 
 

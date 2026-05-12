@@ -58,12 +58,27 @@ def _family_code():
     return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
+TEST_EMAIL = "test@example.com"
+TEST_PASSWORD = "password123"
+
+
 def seed_db():
     random.seed(42)
 
-    # Users
-    users = []
-    used = set()
+    # Fixed user with known credentials for automated tests
+    test_user = User(
+        username="testuser",
+        email=TEST_EMAIL,
+        first_name="Test",
+        last_name="User",
+    )
+    test_user.set_password(TEST_PASSWORD)
+    db.session.add(test_user)
+    db.session.flush()
+
+    # Random users
+    users = [test_user]
+    used = {("Test", "User")}
     for _ in range(20):
         while True:
             first = random.choice(FIRST_NAMES)
