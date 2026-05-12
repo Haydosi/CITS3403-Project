@@ -22,12 +22,9 @@ def create_app(config):
     
     from app.blueprints import main
     flask_app.register_blueprint(main)
-    
+
+    from app.api import public_api, private_api
+    flask_app.register_blueprint(public_api)
+    flask_app.register_blueprint(private_api)
+
     return flask_app
-
-
-from app import models, routes
-from app.api import public_api, private_api
-
-app.register_blueprint(public_api)
-app.register_blueprint(private_api)

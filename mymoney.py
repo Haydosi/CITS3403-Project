@@ -7,10 +7,10 @@ flask_app = create_app(DeploymentConfig())
 
 @flask_app.cli.command("seed")
 def seed_command():
-    """Populate the database with mock users, transactions, and groups."""
-    from app.seed import seed_db
+    """Populate the database with mock users, transactions, and groups (skips if data exists)."""
+    from app.seed import seed_if_empty
     with flask_app.app_context():
-        seed_db()
+        seed_if_empty()
 
 
 # Auto-seed on debug startup (only in the Werkzeug child process, not the reloader parent)
