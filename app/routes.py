@@ -48,9 +48,17 @@ def register():
     form = RegisterForm()
     if form.validate_on_submit():
         if User.query.filter_by(email=form.email.data).first():
-            flash("An account with that email already exists")
+            flash("An account with that email already exists.")
             return redirect(url_for("main.register"))
-        user = User(email=form.email.data, username=form.email.data)
+        if User.query.filter_by(username=form.username.data).first():
+            flash("That username is already taken.")
+            return redirect(url_for("main.register"))
+        user = User(
+            username=form.username.data.strip(),
+            email=form.email.data.strip(),
+            first_name=(form.first_name.data or '').strip() or None,
+            last_name=(form.last_name.data or '').strip() or None,
+        )
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
@@ -87,8 +95,8 @@ def profile():
 
             current_user.username = new_username
             current_user.email = new_email
-            current_user.first_name = edit_form.first_name.data.strip() or None
-            current_user.last_name = edit_form.last_name.data.strip() or None
+            current_user.first_name = (edit_form.first_name.data or '').strip() or None
+            current_user.last_name = (edit_form.last_name.data or '').strip() or None
             db.session.commit()
             flash("Profile updated successfully.", "success")
             return redirect(url_for("main.profile"))
