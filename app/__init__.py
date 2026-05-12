@@ -3,15 +3,14 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-from config import Config
-
+from config import Config, DeploymentConfig
 
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
 login.login_view = "main.login"
 
-def create_app(config):
+def create_app(config=DeploymentConfig):
     flask_app = Flask(__name__)
     flask_app.config.from_object(config)
     db.init_app(flask_app)
