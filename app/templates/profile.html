@@ -7,9 +7,20 @@
     <div class="top-bar anim-in">
         <div>
             <div class="page-title">My Profile</div>
-            <div class="page-subtitle">Your account details and information.</div>
+            <div class="page-subtitle">Your account details and settings.</div>
         </div>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category == 'success' else 'danger' }} alert-dismissible fade show mb-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
     <div class="row g-4">
         <!-- Avatar + name card -->
@@ -34,49 +45,145 @@
                         {{ 'Active' if current_user.is_active else 'Inactive' }}
                     </span>
                 </div>
+                <div class="mt-3 text-muted" style="font-size:0.78rem;">
+                    Member since {{ current_user.created_at.strftime('%d %b %Y') if current_user.created_at else '—' }}
+                </div>
             </div>
         </div>
 
-        <!-- Info fields -->
+        <!-- Tabs: Info / Edit / Password -->
         <div class="col-lg-8">
             <div class="dash-card anim-in anim-delay-2">
-                <div class="dash-card-header">
-                    <div class="dash-card-title">Account Information</div>
+                <!-- Tab nav -->
+                <ul class="nav profile-tabs mb-4" id="profileTabs">
+                    <li class="nav-item">
+                        <a class="profile-tab-link {% if active_tab == 'view' %}active{% endif %}" href="#" data-tab="view">
+                            <i class="bi bi-person-lines-fill"></i> Info
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="profile-tab-link {% if active_tab == 'edit' %}active{% endif %}" href="#" data-tab="edit">
+                            <i class="bi bi-pencil-square"></i> Edit Profile
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="profile-tab-link {% if active_tab == 'password' %}active{% endif %}" href="#" data-tab="password">
+                            <i class="bi bi-key"></i> Password
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Tab: Info -->
+                <div class="tab-pane {% if active_tab == 'view' %}d-block{% else %}d-none{% endif %}" id="tab-view">
+                    <div class="profile-fields">
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-hash"></i> User ID</div>
+                            <div class="field-value field-mono">{{ current_user.id }}</div>
+                        </div>
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-person"></i> Username</div>
+                            <div class="field-value">{{ current_user.username }}</div>
+                        </div>
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-envelope"></i> Email</div>
+                            <div class="field-value">{{ current_user.email }}</div>
+                        </div>
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-person-badge"></i> First Name</div>
+                            <div class="field-value">{{ current_user.first_name or '—' }}</div>
+                        </div>
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-person-badge"></i> Last Name</div>
+                            <div class="field-value">{{ current_user.last_name or '—' }}</div>
+                        </div>
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-shield"></i> Role</div>
+                            <div class="field-value">{{ current_user.role | capitalize }}</div>
+                        </div>
+                        <div class="profile-field">
+                            <div class="field-label"><i class="bi bi-clock-history"></i> Last Updated</div>
+                            <div class="field-value">{{ current_user.updated_at.strftime('%d %B %Y, %H:%M UTC') if current_user.updated_at else '—' }}</div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="profile-fields">
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-hash"></i> User ID</div>
-                        <div class="field-value field-mono">{{ current_user.id }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-person"></i> Username</div>
-                        <div class="field-value">{{ current_user.username }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-envelope"></i> Email</div>
-                        <div class="field-value">{{ current_user.email }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-person-badge"></i> First Name</div>
-                        <div class="field-value">{{ current_user.first_name or '—' }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-person-badge"></i> Last Name</div>
-                        <div class="field-value">{{ current_user.last_name or '—' }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-shield"></i> Role</div>
-                        <div class="field-value">{{ current_user.role | capitalize }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-calendar-plus"></i> Member Since</div>
-                        <div class="field-value">{{ current_user.created_at.strftime('%d %B %Y') if current_user.created_at else '—' }}</div>
-                    </div>
-                    <div class="profile-field">
-                        <div class="field-label"><i class="bi bi-clock-history"></i> Last Updated</div>
-                        <div class="field-value">{{ current_user.updated_at.strftime('%d %B %Y, %H:%M UTC') if current_user.updated_at else '—' }}</div>
-                    </div>
+                <!-- Tab: Edit Profile -->
+                <div class="tab-pane {% if active_tab == 'edit' %}d-block{% else %}d-none{% endif %}" id="tab-edit">
+                    <form method="POST" action="{{ url_for('main.profile') }}">
+                        {{ edit_form.hidden_tag() }}
+                        <input type="hidden" name="action" value="edit_profile">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label field-label-form">{{ edit_form.username.label.text }}</label>
+                                {{ edit_form.username(class="form-control profile-input", placeholder="Username") }}
+                                {% for err in edit_form.username.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label field-label-form">{{ edit_form.email.label.text }}</label>
+                                {{ edit_form.email(class="form-control profile-input", placeholder="Email address") }}
+                                {% for err in edit_form.email.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label field-label-form">{{ edit_form.first_name.label.text }}</label>
+                                {{ edit_form.first_name(class="form-control profile-input", placeholder="First name") }}
+                                {% for err in edit_form.first_name.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label field-label-form">{{ edit_form.last_name.label.text }}</label>
+                                {{ edit_form.last_name(class="form-control profile-input", placeholder="Last name") }}
+                                {% for err in edit_form.last_name.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-12 mt-2">
+                                <button type="submit" class="btn btn-profile-save">
+                                    <i class="bi bi-check-lg"></i> Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Tab: Change Password -->
+                <div class="tab-pane {% if active_tab == 'password' %}d-block{% else %}d-none{% endif %}" id="tab-password">
+                    <form method="POST" action="{{ url_for('main.profile') }}">
+                        {{ password_form.hidden_tag() }}
+                        <input type="hidden" name="action" value="change_password">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label field-label-form">{{ password_form.current_password.label.text }}</label>
+                                {{ password_form.current_password(class="form-control profile-input", placeholder="Enter current password") }}
+                                {% for err in password_form.current_password.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label field-label-form">{{ password_form.new_password.label.text }}</label>
+                                {{ password_form.new_password(class="form-control profile-input", placeholder="Min. 8 characters") }}
+                                {% for err in password_form.new_password.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label field-label-form">{{ password_form.confirm_password.label.text }}</label>
+                                {{ password_form.confirm_password(class="form-control profile-input", placeholder="Repeat new password") }}
+                                {% for err in password_form.confirm_password.errors %}
+                                    <div class="text-danger small mt-1">{{ err }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="col-12 mt-2">
+                                <button type="submit" class="btn btn-profile-save">
+                                    <i class="bi bi-key"></i> Change Password
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -119,9 +226,7 @@
     color: var(--accent-teal);
 }
 
-.profile-meta {
-    font-size: 0.8rem;
-}
+.profile-meta { font-size: 0.8rem; }
 
 .status-active {
     color: var(--accent-teal);
@@ -129,10 +234,7 @@
     align-items: center;
     gap: 6px;
 }
-
-.status-active .bi-circle-fill {
-    font-size: 0.5rem;
-}
+.status-active .bi-circle-fill { font-size: 0.5rem; }
 
 .status-inactive {
     color: var(--accent-rose);
@@ -141,6 +243,46 @@
     gap: 6px;
 }
 
+/* Tab nav */
+.profile-tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 0;
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0 !important;
+}
+
+.profile-tab-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: color 0.15s, background 0.15s;
+}
+
+.profile-tab-link:hover {
+    color: var(--text-primary);
+    background: var(--surface-2);
+}
+
+.profile-tab-link.active {
+    color: var(--accent-teal);
+    background: var(--surface-2);
+    border-color: var(--border-subtle);
+    border-bottom-color: var(--surface-2);
+    margin-bottom: -1px;
+}
+
+/* Fields (info tab) */
 .profile-fields {
     display: flex;
     flex-direction: column;
@@ -155,9 +297,7 @@
     border-bottom: 1px solid var(--border-subtle);
 }
 
-.profile-field:last-child {
-    border-bottom: none;
-}
+.profile-field:last-child { border-bottom: none; }
 
 .field-label {
     font-size: 0.82rem;
@@ -183,5 +323,64 @@
     border-radius: var(--radius-sm);
     color: var(--accent-teal);
 }
+
+/* Edit form */
+.field-label-form {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.profile-input {
+    background: var(--surface-3) !important;
+    border-color: var(--border-subtle) !important;
+    color: var(--text-primary) !important;
+    font-size: 0.88rem;
+}
+
+.profile-input:focus {
+    border-color: var(--accent-teal) !important;
+    box-shadow: 0 0 0 3px var(--accent-teal-glow) !important;
+}
+
+.btn-profile-save {
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    color: #fff;
+    border: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.15s;
+}
+
+.btn-profile-save:hover { opacity: 0.88; color: #fff; }
 </style>
+
+{% block page_js %}
+<script>
+(function () {
+    const links = document.querySelectorAll('.profile-tab-link');
+    const panes = { view: document.getElementById('tab-view'), edit: document.getElementById('tab-edit'), password: document.getElementById('tab-password') };
+
+    function activate(tab) {
+        links.forEach(l => l.classList.toggle('active', l.dataset.tab === tab));
+        Object.entries(panes).forEach(([key, el]) => {
+            el.classList.toggle('d-block', key === tab);
+            el.classList.toggle('d-none', key !== tab);
+        });
+    }
+
+    links.forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            activate(link.dataset.tab);
+        });
+    });
+})();
+</script>
+{% endblock %}
 {% endblock %}
