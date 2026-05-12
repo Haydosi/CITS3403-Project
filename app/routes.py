@@ -58,6 +58,12 @@ def register():
     return render_template("register.html", form=form)
 
 
+@main.route("/profile")
+@login_required
+def profile():
+    return render_template("profile.html")
+
+
 @main.route("/logout")
 def logout():
     logout_user()
