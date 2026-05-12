@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}MyMoney - Profile{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <div class="top-bar anim-in">
+        <div>
+            <div class="page-title">My Profile</div>
+            <div class="page-subtitle">Your account details and information.</div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Avatar + name card -->
+        <div class="col-lg-4">
+            <div class="dash-card anim-in anim-delay-1 text-center">
+                <div class="profile-avatar mx-auto mb-3">
+                    {{ (current_user.first_name[0] if current_user.first_name else current_user.username[0]) | upper }}{{ (current_user.last_name[0] if current_user.last_name else '') | upper }}
+                </div>
+                <div class="profile-display-name">
+                    {% if current_user.first_name or current_user.last_name %}
+                        {{ current_user.first_name or '' }} {{ current_user.last_name or '' }}
+                    {% else %}
+                        {{ current_user.username }}
+                    {% endif %}
+                </div>
+                <div class="profile-role-badge mt-2">
+                    <i class="bi bi-shield-check"></i> {{ current_user.role | capitalize }}
+                </div>
+                <div class="profile-meta mt-3">
+                    <span class="{% if current_user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                        <i class="bi bi-circle-fill"></i>
+                        {{ 'Active' if current_user.is_active else 'Inactive' }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Info fields -->
+        <div class="col-lg-8">
+            <div class="dash-card anim-in anim-delay-2">
+                <div class="dash-card-header">
+                    <div class="dash-card-title">Account Information</div>
+                </div>
+
+                <div class="profile-fields">
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-hash"></i> User ID</div>
+                        <div class="field-value field-mono">{{ current_user.id }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-person"></i> Username</div>
+                        <div class="field-value">{{ current_user.username }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-envelope"></i> Email</div>
+                        <div class="field-value">{{ current_user.email }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-person-badge"></i> First Name</div>
+                        <div class="field-value">{{ current_user.first_name or '—' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-person-badge"></i> Last Name</div>
+                        <div class="field-value">{{ current_user.last_name or '—' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-shield"></i> Role</div>
+                        <div class="field-value">{{ current_user.role | capitalize }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-calendar-plus"></i> Member Since</div>
+                        <div class="field-value">{{ current_user.created_at.strftime('%d %B %Y') if current_user.created_at else '—' }}</div>
+                    </div>
+                    <div class="profile-field">
+                        <div class="field-label"><i class="bi bi-clock-history"></i> Last Updated</div>
+                        <div class="field-value">{{ current_user.updated_at.strftime('%d %B %Y, %H:%M UTC') if current_user.updated_at else '—' }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: #fff;
+    box-shadow: 0 0 30px var(--accent-teal-glow);
+}
+
+.profile-display-name {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-top: 4px;
+}
+
+.profile-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+.profile-meta {
+    font-size: 0.8rem;
+}
+
+.status-active {
+    color: var(--accent-teal);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.status-active .bi-circle-fill {
+    font-size: 0.5rem;
+}
+
+.status-inactive {
+    color: var(--accent-rose);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.profile-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.profile-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-field:last-child {
+    border-bottom: none;
+}
+
+.field-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 160px;
+}
+
+.field-value {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    text-align: right;
+}
+
+.field-mono {
+    font-family: monospace;
+    font-size: 0.85rem;
+    background: var(--surface-3);
+    padding: 3px 10px;
+    border-radius: var(--radius-sm);
+    color: var(--accent-teal);
+}
+</style>
+{% endblock %}
