@@ -1,6 +1,7 @@
 // Real leaderboard data is fetched from the backend API
 let worldLeaderboard = [];
 let familyLeaderboard = [];
+let currentUserTotalSavings = 0;
 
 const topSaversCards = document.getElementById("topSaversCards");
 const familyLeaderboardBody = document.getElementById("familyLeaderboardBody");
@@ -10,6 +11,7 @@ const worldTabBtn = document.getElementById("worldTabBtn");
 const familyTabBtn = document.getElementById("familyTabBtn");
 const worldSection = document.getElementById("worldSection");
 const familySection = document.getElementById("familySection");
+const mySavingsAmount = document.getElementById("mySavingsAmount");
 
 // Tracks which section is currently visible in the UI.
 let activeSection = "world";
@@ -19,6 +21,31 @@ function currency(amount) {
     return `$${amount.toLocaleString("en-AU")}`;
 }
 
+function storeMySavings(amount) {
+    // Store user's total savings in localStorage for privacy
+    localStorage.setItem("mySavingsTotal", JSON.stringify({
+        amount: amount,
+        timestamp: new Date().toISOString()
+    }));
+}
+
+function getMySavings() {
+    // Retrieve user's total savings from localStorage
+    const saved = localStorage.getItem("mySavingsTotal");
+    if (saved) {
+        const data = JSON.parse(saved);
+        return data.amount;
+    }
+    return 0;
+}
+
+function updateMySavingsDisplay() {
+    // Update the "My Total Savings" section with locally stored data
+    if (mySavingsAmount) {
+        mySavingsAmount.textContent = currency(currentUserTotalSavings);
+    }
+}
+
 async function fetchLeaderboardData() {
     try {
         // Fetch world leaderboard
@@ -26,6 +53,13 @@ async function fetchLeaderboardData() {
         if (worldResponse.ok) {
             const data = await worldResponse.json();
             worldLeaderboard = data.leaderboard || [];
+            
+            // Find current user in world leaderboard and store their total
+            const currentUser = worldLeaderboard.find(user => user.id === getCurrentUserId());
+            if (currentUser) {
+                currentUserTotalSavings = currentUser.total_saved;
+                storeMySavings(currentUserTotalSavings);
+            }
         } else {
             console.error("Failed to fetch world leaderboard");
             worldLeaderboard = [];
@@ -44,11 +78,25 @@ async function fetchLeaderboardData() {
         console.error("Error fetching leaderboard data:", error);
         worldLeaderboard = [];
         familyLeaderboard = [];
+        // Try to restore from localStorage if API fails
+        const saved = getMySavings();
+        if (saved > 0) {
+            currentUserTotalSavings = saved;
+        }
     }
 }
 
+function getCurrentUserId() {
+    // Get current user ID from the DOM data attribute
+    const userElement = document.querySelector('[data-user-id]');
+    if (userElement) {
+        return parseInt(userElement.getAttribute('data-user-id'));
+    }
+    return null;
+}
+
 function renderTopSavers() {
-    // Build the top-3 global saver cards from real data.
+    // Build the top-3 global saver cards showing percentages.
     const topThree = worldLeaderboard.slice(0, 3);
     const totalTop = topThree.reduce((sum, person) => sum + person.total_saved, 0);
 
@@ -67,21 +115,21 @@ function renderTopSavers() {
                             <small class="page-subtitle">${person.email}</small>
                         </div>
                     </div>
-                    <div class="stat-value">${currency(person.total_saved)}</div>
-                    <div class="percentage-under">${percentage}% of top-3 savings</div>
+                    <div class="stat-value">${percentage}%</div>
+                    <div class="percentage-under">of top-3 savings</div>
                 </div>
             </div>`;
     });
 }
 
 function renderFamilySection() {
-    // Build the family-only ranking table from real data.
+    // Build the family-only ranking table showing percentages.
     const familyTotal = familyLeaderboard.reduce((sum, player) => sum + player.total_saved, 0);
     familyCount.textContent = `${familyLeaderboard.length} members`;
     familyLeaderboardBody.innerHTML = "";
 
     familyLeaderboard.forEach((player, index) => {
-        const share = familyTotal ? Math.round((player.total_saved / familyTotal) * 100) : 0;
+        const percentage = familyTotal ? Math.round((player.total_saved / familyTotal) * 100) : 0;
         const displayName = player.first_name || player.username || "Anonymous";
         familyLeaderboardBody.innerHTML += `
             <tr>
@@ -92,10 +140,7 @@ function renderFamilySection() {
                         <div>${displayName}</div>
                     </div>
                 </td>
-                <td class="text-end"><strong>${currency(player.total_saved)}</strong></td>
-                <td class="text-end">${share}%</td>
-                <td class="text-end">-</td>
-                <td class="text-end">-</td>
+                <td class="text-end"><strong>${percentage}%</strong></td>
             </tr>`;
     });
 }
@@ -104,6 +149,7 @@ function render() {
     // Initial/full refresh render used on page load.
     renderTopSavers();
     renderFamilySection();
+    updateMySavingsDisplay();
     updateSectionView();
     lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
