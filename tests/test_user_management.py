@@ -28,6 +28,74 @@ class UserManagementTestCase(unittest.TestCase):
             "password": password,
         }, follow_redirects=True)
 
+    # ── /register ─────────────────────────────────────────────────────────────
+
+    def test_register_saves_all_fields(self):
+        response = self.client.post("/register", data={
+            "username": "janedoe",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane@example.com",
+            "password": "password123",
+            "confirm_password": "password123",
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            u = User.query.filter_by(username="janedoe").first()
+            self.assertIsNotNone(u)
+            self.assertEqual(u.email, "jane@example.com")
+            self.assertEqual(u.first_name, "Jane")
+            self.assertEqual(u.last_name, "Doe")
+
+    def test_register_without_optional_name_fields(self):
+        response = self.client.post("/register", data={
+            "username": "anonymous",
+            "first_name": "",
+            "last_name": "",
+            "email": "anon@example.com",
+            "password": "password123",
+            "confirm_password": "password123",
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            u = User.query.filter_by(username="anonymous").first()
+            self.assertIsNotNone(u)
+            self.assertIsNone(u.first_name)
+            self.assertIsNone(u.last_name)
+
+    def test_register_duplicate_username_rejected(self):
+        response = self.client.post("/register", data={
+            "username": "testuser",
+            "email": "other@example.com",
+            "password": "password123",
+            "confirm_password": "password123",
+        }, follow_redirects=True)
+        self.assertIn(b"already taken", response.data)
+        with self.app.app_context():
+            self.assertEqual(User.query.filter_by(username="testuser").count(), 1)
+
+    def test_register_username_too_short_rejected(self):
+        response = self.client.post("/register", data={
+            "username": "ab",
+            "email": "short@example.com",
+            "password": "password123",
+            "confirm_password": "password123",
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            self.assertIsNone(User.query.filter_by(email="short@example.com").first())
+
+    def test_register_password_too_short_rejected(self):
+        response = self.client.post("/register", data={
+            "username": "validuser",
+            "email": "valid@example.com",
+            "password": "short",
+            "confirm_password": "short",
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        with self.app.app_context():
+            self.assertIsNone(User.query.filter_by(email="valid@example.com").first())
+
     # ── /profile access ───────────────────────────────────────────────────────
 
     def test_profile_requires_login(self):
