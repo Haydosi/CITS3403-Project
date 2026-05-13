@@ -3,6 +3,7 @@ from flask_login import LoginManager
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+import config
 from config import Config
 
 
@@ -11,7 +12,7 @@ migrate = Migrate()
 login = LoginManager()
 login.login_view = "main.login"
 
-def create_app(config):
+def create_app(config= config.DeploymentConfig):
     flask_app = Flask(__name__)
     flask_app.config.from_object(config)
     db.init_app(flask_app)
@@ -25,8 +26,5 @@ def create_app(config):
     flask_app.register_blueprint(main)
     flask_app.register_blueprint(public_api)
     flask_app.register_blueprint(private_api)
-    
+
     return flask_app
-
-
-from app import models, routes

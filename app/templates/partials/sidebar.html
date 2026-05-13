@@ -44,12 +44,23 @@ this belongs in the sidebar partial
     </nav>
     <!-- Logged-in user info at the bottom of the sidebar -->
     <div class="sidebar-footer">
-        <div class="user-pill">
-            <div class="user-avatar">SM</div>
-            <div class="user-info">
-                <div class="user-name">Scout M.</div>
-                <div class="user-email">scout@example.com</div>
+        <a href="{{ url_for('main.profile') }}" class="user-pill text-decoration-none">
+            <div class="user-avatar">
+                {{ (current_user.first_name[0] if current_user.first_name else current_user.username[0]) | upper }}{{ (current_user.last_name[0] if current_user.last_name else '') | upper }}
             </div>
-        </div>
+            <div class="user-info">
+                <div class="user-name">
+                    {% if current_user.first_name or current_user.last_name %}
+                        {{ current_user.first_name or '' }} {{ current_user.last_name or '' }}
+                    {% else %}
+                        {{ current_user.username }}
+                    {% endif %}
+                </div>
+                <div class="user-email">{{ current_user.email }}</div>
+            </div>
+        </a>
+        <a href="{{ url_for('main.logout') }}" class="logout-btn" title="Logout">
+            <i class="bi bi-box-arrow-right"></i>
+        </a>
     </div>
 </aside>
