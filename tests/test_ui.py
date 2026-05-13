@@ -17,40 +17,43 @@ from config import Config
 PORT = 5001
 BASE = f"http://localhost:{PORT}"
 
+_db_path: str | None = None
+
 
 class _SeleniumConfig(Config):
     TESTING = True
     WTF_CSRF_ENABLED = False
-    # Overridden per-class with a temp file URI
+
+
+def setUpModule():
+    global _db_path
+    fd, _db_path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+
+    class _Cfg(_SeleniumConfig):
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{_db_path}"
+
+    flask_app = create_app(_Cfg())
+
+    with flask_app.app_context():
+        db.create_all()
+        seed_if_empty()
+
+    server = threading.Thread(
+        target=lambda: flask_app.run(port=PORT, use_reloader=False, threaded=True),
+        daemon=True,
+    )
+    server.start()
+    time.sleep(1)
+
+
+def tearDownModule():
+    if _db_path and os.path.exists(_db_path):
+        os.unlink(_db_path)
 
 
 class SeleniumTestCase(unittest.TestCase):
-    """Base class: spins up a live Flask server once per class, one driver per test."""
-
-    @classmethod
-    def setUpClass(cls):
-        fd, cls._db_path = tempfile.mkstemp(suffix=".db")
-        os.close(fd)
-
-        class _Cfg(_SeleniumConfig):
-            SQLALCHEMY_DATABASE_URI = f"sqlite:///{cls._db_path}"
-
-        cls.flask_app = create_app(_Cfg())
-
-        with cls.flask_app.app_context():
-            db.create_all()
-            seed_if_empty()
-
-        cls._server = threading.Thread(
-            target=lambda: cls.flask_app.run(port=PORT, use_reloader=False, threaded=True),
-            daemon=True,
-        )
-        cls._server.start()
-        time.sleep(1)
-
-    @classmethod
-    def tearDownClass(cls):
-        os.unlink(cls._db_path)
+    """Base class: one driver per test. Server is shared across all test classes."""
 
     def setUp(self):
         opts = Options()
@@ -107,11 +110,13 @@ class TestProtectedRoutes(SeleniumTestCase):
 
     def test_dashboard_accessible_after_login(self):
         self._login()
+        self.wait.until(EC.url_changes(f"{BASE}/login"))
         self.driver.get(f"{BASE}/")
         self.assertNotIn("login", self.driver.current_url)
 
     def test_leaderboard_accessible_after_login(self):
         self._login()
+        self.wait.until(EC.url_changes(f"{BASE}/login"))
         self.driver.get(f"{BASE}/leaderboard")
         self.assertNotIn("login", self.driver.current_url)
 
