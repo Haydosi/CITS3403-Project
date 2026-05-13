@@ -66,3 +66,8 @@ For running unit tests:
 ```bash
 python -m unittest
 ```
+
+For running Selenium UI tests (requires Google Chrome and ChromeDriver installed):
+```bash
+python -m unittest tests.test_ui
+```
