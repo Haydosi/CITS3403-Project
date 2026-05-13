@@ -41,10 +41,6 @@ this belongs in the sidebar partial
         <a href="{{ url_for('main.debt_calculator') }}"
             class="nav-link {{ 'active' if request.endpoint == 'main.debt_calculator' else '' }}"><i class="bi bi-calculator"></i> Debt Calculator</a>
         <a href="#" class="nav-link"><i class="bi bi-robot"></i> AI Advisor</a>
-        <div class="nav-section-label">Account</div>
-        <a href="{{ url_for('main.profile') }}"
-            class="nav-link {{ 'active' if request.endpoint == 'main.profile' else '' }}"><i class="bi bi-person-circle"></i> Profile</a>
-        <a href="{{ url_for('main.logout') }}" class="nav-link"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </nav>
     <!-- Logged-in user info at the bottom of the sidebar -->
     <div class="sidebar-footer">
@@ -62,6 +58,9 @@ this belongs in the sidebar partial
                 </div>
                 <div class="user-email">{{ current_user.email }}</div>
             </div>
+        </a>
+        <a href="{{ url_for('main.logout') }}" class="logout-btn" title="Logout">
+            <i class="bi bi-box-arrow-right"></i>
         </a>
     </div>
 </aside>
