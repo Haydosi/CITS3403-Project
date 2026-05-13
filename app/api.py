@@ -184,6 +184,7 @@ def api_family_leaderboard(group_id):
         return json_error("Authentication required", 401)
     
     # Query to calculate total savings per user in a specific group
+    # Include all group members, even if they have no transactions in that group.
     leaderboard_query = db.session.query(
         User.id,
         User.username,
@@ -191,9 +192,20 @@ def api_family_leaderboard(group_id):
         User.first_name,
         User.last_name,
         func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
-    ).outerjoin(Transaction, (User.id == Transaction.user_id) & (Transaction.group_id == group_id)).group_by(
-        User.id
-    ).filter(Transaction.group_id == group_id).order_by(
+    ).join(
+        UserGroupMembership, User.id == UserGroupMembership.user_id
+    ).filter(
+        UserGroupMembership.group_id == group_id
+    ).outerjoin(
+        Transaction,
+        (User.id == Transaction.user_id) & (Transaction.group_id == group_id)
+    ).group_by(
+        User.id,
+        User.username,
+        User.email,
+        User.first_name,
+        User.last_name
+    ).order_by(
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     )
     

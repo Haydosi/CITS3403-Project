@@ -65,7 +65,7 @@ async function fetchLeaderboardData() {
             worldLeaderboard = [];
         }
         
-        // Fetch family leaderboard (assuming group_id = 1 for now, can be made dynamic)
+        // TODO: make this dynamic; currently using hardcoded group_id = 1
         const familyResponse = await fetch("/api/private/leaderboard/family/1");
         if (familyResponse.ok) {
             const data = await familyResponse.json();
