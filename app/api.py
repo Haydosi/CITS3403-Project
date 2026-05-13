@@ -182,6 +182,7 @@ def api_family_leaderboard(group_id):
     # Private family leaderboard endpoint - returns top savers in a specific family group.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
+<<<<<<< HEAD
 
     leaderboard_query = db.session.query(
         FamilyMember.id,
@@ -205,6 +206,35 @@ def api_family_leaderboard(group_id):
         func.coalesce(func.sum(FamilyTransaction.amount), 0).desc()
     ).limit(10)
 
+=======
+    
+    # Query to calculate total savings per user in a specific group
+    # Include all group members, even if they have no transactions in that group.
+    leaderboard_query = db.session.query(
+        User.id,
+        User.username,
+        User.email,
+        User.first_name,
+        User.last_name,
+        func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
+    ).join(
+        UserGroupMembership, User.id == UserGroupMembership.user_id
+    ).filter(
+        UserGroupMembership.group_id == group_id
+    ).outerjoin(
+        Transaction,
+        (User.id == Transaction.user_id) & (Transaction.group_id == group_id)
+    ).group_by(
+        User.id,
+        User.username,
+        User.email,
+        User.first_name,
+        User.last_name
+    ).order_by(
+        func.coalesce(func.sum(Transaction.amount), 0).desc()
+    )
+    
+>>>>>>> main
     leaderboard = []
     for member_id, global_user_id, first_name, last_name, email, total_saved in leaderboard_query:
         leaderboard.append({

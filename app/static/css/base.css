@@ -113,6 +113,8 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .sidebar-nav .nav-link {
@@ -156,6 +158,9 @@ body::before {
 .sidebar-footer {
     padding: 16px;
     border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .sidebar-footer .user-pill {
@@ -167,10 +172,31 @@ body::before {
     background: var(--surface-2);
     cursor: pointer;
     transition: background var(--transition-smooth);
+    flex: 1;
+    min-width: 0;
 }
 
 .sidebar-footer .user-pill:hover {
     background: var(--surface-3);
+}
+
+.sidebar-footer .logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    align-self: stretch;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    background: var(--surface-2);
+    transition: background var(--transition-smooth), color var(--transition-smooth);
+    flex-shrink: 0;
+}
+
+.sidebar-footer .logout-btn:hover {
+    background: var(--surface-2);
+    color: var(--accent-rose);
 }
 
 .sidebar-footer .user-avatar {
