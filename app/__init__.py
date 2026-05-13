@@ -24,8 +24,6 @@ def create_app(config= config.DeploymentConfig):
     from app.api import public_api, private_api
 
     flask_app.register_blueprint(main)
-
-    from app.api import public_api, private_api
     flask_app.register_blueprint(public_api)
     flask_app.register_blueprint(private_api)
 
