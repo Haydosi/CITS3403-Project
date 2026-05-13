@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 from app import db
-from app.models import User, Transaction, FamilyMember, FamilyTransaction
+from app.models import User, Transaction, FamilyMember, FamilyTransaction, UserGroupMembership
 
 # Public API routes are intended for external or unauthenticated clients.
 # These endpoints can be consumed by frontend forms or third-party apps.
@@ -182,31 +182,6 @@ def api_family_leaderboard(group_id):
     # Private family leaderboard endpoint - returns top savers in a specific family group.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-<<<<<<< HEAD
-
-    leaderboard_query = db.session.query(
-        FamilyMember.id,
-        FamilyMember.global_user_id,
-        FamilyMember.first_name,
-        FamilyMember.last_name,
-        FamilyMember.email,
-        func.coalesce(func.sum(FamilyTransaction.amount), 0).label('total_saved')
-    ).outerjoin(
-        FamilyTransaction,
-        FamilyMember.id == FamilyTransaction.family_member_id
-    ).filter(
-        FamilyMember.family_group_id == group_id
-    ).group_by(
-        FamilyMember.id,
-        FamilyMember.global_user_id,
-        FamilyMember.first_name,
-        FamilyMember.last_name,
-        FamilyMember.email
-    ).order_by(
-        func.coalesce(func.sum(FamilyTransaction.amount), 0).desc()
-    ).limit(10)
-
-=======
     
     # Query to calculate total savings per user in a specific group
     # Include all group members, even if they have no transactions in that group.
@@ -234,7 +209,6 @@ def api_family_leaderboard(group_id):
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     )
     
->>>>>>> main
     leaderboard = []
     for member_id, global_user_id, first_name, last_name, email, total_saved in leaderboard_query:
         leaderboard.append({
