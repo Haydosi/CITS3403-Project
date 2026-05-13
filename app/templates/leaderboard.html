@@ -18,6 +18,17 @@
         <div class="dash-card-badge" id="lastUpdated">Updated just now</div>
     </section>
 
+    <!-- My Savings Summary -->
+    <section class="dash-card mb-4 anim-in anim-delay-1">
+        <div class="dash-card-header">
+            <h3 class="dash-card-title">My Total Savings</h3>
+        </div>
+        <div class="stat-value" id="mySavingsAmount" style="font-size: 2.5rem; color: var(--accent-teal);">
+            $0.00
+        </div>
+        <p class="page-subtitle" style="margin-top: 8px;">This data is only visible to you on this device.</p>
+    </section>
+
     <!-- Section toggle buttons (World vs Family leaderboard) -->
     <section class="dash-card mb-4 anim-in anim-delay-1">
         <div class="section-switcher">
@@ -33,7 +44,7 @@
     <!-- World leaderboard cards are injected by leaderboard.js -->
     <section class="dash-card mb-4 anim-in anim-delay-2" id="worldSection">
         <div class="dash-card-header">
-            <h3 class="dash-card-title">World Top Saver</h3>
+            <h3 class="dash-card-title">World Top Saver (Ranked by %)</h3>
             <span class="dash-card-badge">Global</span>
         </div>
         <div class="row g-3" id="topSaversCards"></div>
@@ -42,7 +53,7 @@
     <!-- Family leaderboard table rows are injected by leaderboard.js -->
     <section class="dash-card anim-in anim-delay-3 hidden-section" id="familySection">
         <div class="dash-card-header">
-            <h3 class="dash-card-title">Family Saving</h3>
+            <h3 class="dash-card-title">Family Saving (Ranked by %)</h3>
             <span class="dash-card-badge" id="familyCount">0 members</span>
         </div>
         <div class="table-responsive">
@@ -51,9 +62,7 @@
                     <tr>
                         <th>Rank</th>
                         <th>Family Member</th>
-                        <th class="text-end">Contribution</th>
-                        <th class="text-end">Streak</th>
-                        <th class="text-end">Wins</th>
+                        <th class="text-end">Percentage</th>
                     </tr>
                 </thead>
                 <tbody id="familyLeaderboardBody"></tbody>

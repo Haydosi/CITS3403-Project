@@ -20,7 +20,7 @@
 
 </head>
 
-<body>
+<body data-user-id="{{ current_user.id }}">
 
     {% block sidebar %}{% include "partials/sidebar.html" %}{% endblock %}
     {% block content %}{% endblock %}
