@@ -131,7 +131,7 @@ class Transaction(db.Model):
         db.ForeignKey("groups.id"),
         nullable=True,  # Optional: can be part of a group
     )
-    amount = db.Column(db.Float, nullable=False)  # Amount saved (positive) or spent (negative)
+    amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)  # Amount saved (positive) or spent (negative)
     description = db.Column(db.String(255))
     transaction_type = db.Column(db.String(50), nullable=False, default="savings")  # savings, expense, transfer, etc.
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
@@ -147,6 +147,148 @@ class Transaction(db.Model):
             "amount": self.amount,
             "description": self.description,
             "transaction_type": self.transaction_type,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# Family-specific database models for group-focused leaderboards and goals
+
+# Family Group table - stores family-specific data and aggregations
+class FamilyGroup(db.Model):
+    __tablename__ = "family_groups"
+
+    id = db.Column(db.Integer, primary_key=True)
+    global_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("groups.id"),
+        nullable=False,
+        unique=True
+    )
+    group_name = db.Column(db.String(50), nullable=False)
+    owner_id = db.Column(db.Integer, nullable=False)
+    family_code = db.Column(db.String(20), unique=True)
+    total_savings = db.Column(db.Float, default=0)
+    member_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
+                           onupdate=utc_now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "global_group_id": self.global_group_id,
+            "group_name": self.group_name,
+            "owner_id": self.owner_id,
+            "family_code": self.family_code,
+            "total_savings": self.total_savings,
+            "member_count": self.member_count,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+# Family Member table - maintains member records with contribution percentages
+class FamilyMember(db.Model):
+    __tablename__ = "family_members"
+
+    id = db.Column(db.Integer, primary_key=True)
+    family_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("family_groups.id"),
+        nullable=False
+    )
+    global_user_id = db.Column(db.Integer, nullable=False)
+    first_name = db.Column(db.String(100))
+    last_name = db.Column(db.String(100))
+    email = db.Column(db.String(255))
+    total_savings = db.Column(db.Float, default=0)
+    contribution_percentage = db.Column(db.Float, default=0)
+    member_since = db.Column(db.DateTime, nullable=False, default=utc_now)
+    last_updated = db.Column(db.DateTime, nullable=False, default=utc_now,
+                             onupdate=utc_now)
+
+    __table_args__ = (
+        db.UniqueConstraint("family_group_id", "global_user_id",
+                            name="unique_family_member"),
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "family_group_id": self.family_group_id,
+            "global_user_id": self.global_user_id,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "total_savings": self.total_savings,
+            "contribution_percentage": self.contribution_percentage,
+            "member_since": self.member_since.isoformat() if self.member_since else None,
+            "last_updated": self.last_updated.isoformat() if self.last_updated else None,
+        }
+
+
+# Family Transaction table - cached transactions for performance
+class FamilyTransaction(db.Model):
+    __tablename__ = "family_transactions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    family_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("family_groups.id"),
+        nullable=False
+    )
+    family_member_id = db.Column(
+        db.Integer,
+        db.ForeignKey("family_members.id"),
+        nullable=False
+    )
+    amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)
+    description = db.Column(db.String(255))
+    transaction_type = db.Column(db.String(50), nullable=False, default="savings")
+    recorded_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "family_group_id": self.family_group_id,
+            "family_member_id": self.family_member_id,
+            "amount": self.amount,
+            "description": self.description,
+            "transaction_type": self.transaction_type,
+            "recorded_at": self.recorded_at.isoformat() if self.recorded_at else None,
+        }
+
+
+# Family Goal table - shared savings goals for families
+class FamilyGoal(db.Model):
+    __tablename__ = "family_goals"
+
+    id = db.Column(db.Integer, primary_key=True)
+    family_group_id = db.Column(
+        db.Integer,
+        db.ForeignKey("family_groups.id"),
+        nullable=False
+    )
+    goal_name = db.Column(db.String(100), nullable=False)
+    target_amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)
+    current_amount = db.Column(db.Numeric(precision=12, scale=2), default=0)
+    deadline = db.Column(db.Date)
+    status = db.Column(db.String(20), default="active")  # active, completed, cancelled
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
+                           onupdate=utc_now)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "family_group_id": self.family_group_id,
+            "goal_name": self.goal_name,
+            "target_amount": self.target_amount,
+            "current_amount": self.current_amount,
+            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "status": self.status,
+            "progress_percentage": (self.current_amount / self.target_amount * 100) if self.target_amount > 0 else 0,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

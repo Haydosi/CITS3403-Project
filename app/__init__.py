@@ -26,5 +26,12 @@ def create_app(config= config.DeploymentConfig):
     flask_app.register_blueprint(main)
     flask_app.register_blueprint(public_api)
     flask_app.register_blueprint(private_api)
+    
 
+    
     return flask_app
+
+
+from app import models, routes
+
+
