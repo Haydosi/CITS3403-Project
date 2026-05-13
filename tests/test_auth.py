@@ -44,6 +44,7 @@ class AuthTestCase(unittest.TestCase):
 
     def test_register_success(self):
         response = self.client.post("/register", data={
+            "username": "newuser",
             "email": "new@example.com",
             "password": "password123",
             "confirm_password": "password123",
@@ -57,22 +58,24 @@ class AuthTestCase(unittest.TestCase):
     def test_register_duplicate_email(self):
         with self.app.app_context():
             u = User(email="existing@example.com",
-                     username="existing@example.com")
+                     username="existinguser")
             u.set_password("pass")
             db.session.add(u)
             db.session.commit()
 
         response = self.client.post("/register", data={
+            "username": "newuser",
             "email": "existing@example.com",
-            "password": "newpass",
-            "confirm_password": "newpass",
+            "password": "newpass123",
+            "confirm_password": "newpass123",
         }, follow_redirects=True)
         self.assertIn(b"already exists", response.data)
 
     def test_register_password_mismatch(self):
         response = self.client.post("/register", data={
+            "username": "someuser",
             "email": "user@example.com",
-            "password": "abc123",
+            "password": "abc12345",
             "confirm_password": "different",
         }, follow_redirects=True)
         self.assertIn(b"Passwords must match", response.data)
