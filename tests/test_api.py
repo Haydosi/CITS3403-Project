@@ -1,5 +1,5 @@
 import unittest
-from app import app, db
+from app import create_app, db
 from app.models import User
 
 
@@ -14,15 +14,13 @@ class ApiTestCase(unittest.TestCase):
     """API test suite for the new JSON endpoints."""
 
     def setUp(self):
-        # Configure Flask for testing and create a fresh in-memory database.
-        app.config.from_object(TestConfig)
-        self.client = app.test_client()
-        with app.app_context():
+        self.app = create_app(TestConfig)
+        self.client = self.app.test_client()
+        with self.app.app_context():
             db.create_all()
 
     def tearDown(self):
-        # Clean up the database after each test.
-        with app.app_context():
+        with self.app.app_context():
             db.session.remove()
             db.drop_all()
 
