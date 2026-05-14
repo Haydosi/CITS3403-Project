@@ -7,6 +7,7 @@ from app import db
 from app.models import (
     User, Group, UserGroupMembership, GroupRole, Transaction,
     FamilyGroup, FamilyMember, FamilyTransaction, FamilyGoal,
+    SavingsTarget,
 )
 
 FIRST_NAMES = [
@@ -45,6 +46,14 @@ GOAL_OPTIONS = [
     ("Home Deposit", 15000, 50000),
     ("Christmas Fund", 500, 2000),
     ("Laptop Upgrade", 800, 2500),
+]
+
+# (name, emoji, target_amount, current_amount, days_until_deadline)
+TARGET_OPTIONS = [
+    ("Summer Trip", "✈️", 2000, 1400, 60),
+    ("New Laptop", "💻", 1500, 820, 30),
+    ("Emergency Fund", "🛡️", 5000, 3200, 240),
+    ("Course Fee", "🎓", 800, 150, 8),
 ]
 
 
@@ -124,6 +133,22 @@ def seed_db():
                 created_at=created,
                 updated_at=created,
             ))
+
+    db.session.flush()
+
+    # Savings targets for the fixed test user (drives the dashboard demo).
+    target_created = datetime.now(UTC) - timedelta(days=60)
+    for name, emoji, target_amt, current_amt, days_left in TARGET_OPTIONS:
+        db.session.add(SavingsTarget(
+            user_id=test_user.id,
+            name=name,
+            emoji=emoji,
+            target_amount=target_amt,
+            current_amount=current_amt,
+            deadline=date.today() + timedelta(days=days_left),
+            created_at=target_created,
+            updated_at=target_created,
+        ))
 
     db.session.flush()
 
