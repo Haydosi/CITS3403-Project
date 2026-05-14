@@ -5,6 +5,7 @@ from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 from app import db
 from app.models import User, Transaction, FamilyMember, FamilyTransaction, UserGroupMembership
+from app.models import Group
 
 # Public API routes are intended for external or unauthenticated clients.
 # These endpoints can be consumed by frontend forms or third-party apps.
@@ -209,16 +210,7 @@ def api_family_leaderboard(group_id):
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     )
     
-    leaderboard = []
-    for member_id, global_user_id, first_name, last_name, email, total_saved in leaderboard_query:
-        leaderboard.append({
-            "id": member_id,
-            "global_user_id": global_user_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "total_saved": float(total_saved) if total_saved else 0,
-        })
+    leaderboard = _family_leaderboard_payload(leaderboard_query)
 
     return jsonify(leaderboard=leaderboard)
 
@@ -380,3 +372,205 @@ def api_debt_loan_sooner():
         rate=rate,
         frequency=freq,
     )
+
+
+def _family_leaderboard_payload(leaderboard_query):
+    # Build JSON rows for the family leaderboard query (user + totals per group).
+    rows = []
+    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+        rows.append(
+            {
+                "id": user_id,
+                "username": username,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "total_saved": float(total_saved) if total_saved else 0,
+            }
+        )
+    return rows
+
+
+ALLOWED_TRANSACTION_TYPES = frozenset({"savings", "expense", "transfer"})
+
+
+def _user_in_group(user_id, group_id):
+    # True if the user belongs to the given group.
+    return (
+        UserGroupMembership.query.filter_by(
+            user_id=user_id, group_id=group_id
+        ).first()
+        is not None
+    )
+
+
+def _parse_optional_group_id(raw):
+    # None = no group; "invalid" = bad input; int = group id.
+    if raw in (None, "", 0, "0"):
+        return None
+    try:
+        gid = int(raw)
+    except (TypeError, ValueError):
+        return "invalid"
+    if gid < 1:
+        return "invalid"
+    return gid
+
+
+def _transaction_to_json(transaction, group_name=None):
+    # Serialize a transaction for JSON, optionally including the group label.
+    data = transaction.to_dict()
+    amt = data.get("amount")
+    if amt is not None:
+        data["amount"] = float(amt)
+    if group_name is not None:
+        data["group_name"] = group_name
+    return data
+
+
+@private_api.route("/me/groups", methods=["GET"])
+def api_my_groups():
+    # Groups the current user belongs to (for transaction forms).
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    groups = (
+        Group.query.join(
+            UserGroupMembership, UserGroupMembership.group_id == Group.id
+        )
+        .filter(UserGroupMembership.user_id == current_user.id)
+        .order_by(Group.group_name.asc())
+        .all()
+    )
+    return jsonify(groups=[g.to_dict() for g in groups])
+
+
+@private_api.route("/transactions", methods=["GET", "POST"])
+def api_transactions():
+    # List or create transactions for the logged-in user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+
+    if request.method == "GET":
+        total_balance = (
+            db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+            .filter(Transaction.user_id == current_user.id)
+            .scalar()
+        )
+        rows = (
+            db.session.query(Transaction, Group.group_name)
+            .outerjoin(Group, Transaction.group_id == Group.id)
+            .filter(Transaction.user_id == current_user.id)
+            .order_by(Transaction.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        return jsonify(
+            transactions=[
+                _transaction_to_json(tx, gname) for tx, gname in rows
+            ],
+            total_balance=float(total_balance) if total_balance else 0.0,
+        )
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    amount = payload.get("amount")
+    if amount is None:
+        return json_error("amount is required", 400)
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return json_error("Invalid amount", 400)
+
+    tx_type = (payload.get("transaction_type") or "savings").strip().lower()
+    if tx_type not in ALLOWED_TRANSACTION_TYPES:
+        return json_error("Invalid transaction_type", 400)
+
+    desc = payload.get("description")
+    if desc is not None:
+        desc = str(desc).strip()[:255] or None
+
+    group_id = _parse_optional_group_id(payload.get("group_id"))
+    if group_id == "invalid":
+        return json_error("Invalid group_id", 400)
+    if group_id is not None and not _user_in_group(current_user.id, group_id):
+        return json_error("You are not a member of that group", 403)
+
+    tx = Transaction(
+        user_id=current_user.id,
+        group_id=group_id,
+        amount=amount,
+        description=desc,
+        transaction_type=tx_type,
+    )
+    db.session.add(tx)
+    db.session.commit()
+    gname = None
+    if group_id:
+        g = Group.query.get(group_id)
+        gname = g.group_name if g else None
+    return jsonify(transaction=_transaction_to_json(tx, gname)), 201
+
+
+@private_api.route("/transactions/<int:transaction_id>", methods=["PATCH", "DELETE"])
+def api_transaction_detail(transaction_id):
+    # Update or delete a single transaction owned by the current user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+
+    tx = Transaction.query.filter_by(
+        id=transaction_id, user_id=current_user.id
+    ).first()
+    if tx is None:
+        return json_error("Transaction not found", 404)
+
+    if request.method == "DELETE":
+        db.session.delete(tx)
+        db.session.commit()
+        return jsonify(success=True)
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    if "amount" in payload:
+        if payload["amount"] is None:
+            return json_error("amount cannot be null", 400)
+        try:
+            tx.amount = float(payload["amount"])
+        except (TypeError, ValueError):
+            return json_error("Invalid amount", 400)
+
+    if "description" in payload:
+        d = payload.get("description")
+        if d is None:
+            tx.description = None
+        else:
+            d = str(d).strip()[:255]
+            tx.description = d or None
+
+    if "transaction_type" in payload:
+        tt = (payload.get("transaction_type") or "").strip().lower()
+        if tt not in ALLOWED_TRANSACTION_TYPES:
+            return json_error("Invalid transaction_type", 400)
+        tx.transaction_type = tt
+
+    if "group_id" in payload:
+        raw = payload.get("group_id")
+        if raw in (None, "", 0, "0"):
+            tx.group_id = None
+        else:
+            group_id = _parse_optional_group_id(raw)
+            if group_id == "invalid":
+                return json_error("Invalid group_id", 400)
+            if not _user_in_group(current_user.id, group_id):
+                return json_error("You are not a member of that group", 403)
+            tx.group_id = group_id
+
+    db.session.commit()
+    gname = None
+    if tx.group_id:
+        g = Group.query.get(tx.group_id)
+        gname = g.group_name if g else None
+    return jsonify(transaction=_transaction_to_json(tx, gname))

@@ -18,6 +18,13 @@ def dashboard():
 def leaderboard():
     return render_template("leaderboard.html")
 
+
+@main.route("/transactions")
+@login_required
+def transactions():
+    return render_template("transactions.html")
+
+
 @main.route("/debt-calculator")
 def debt_calculator():
     return render_template("debt_calculator.html")
