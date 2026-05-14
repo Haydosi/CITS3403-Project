@@ -1,9 +1,10 @@
 from app import db, login
-from sqlalchemy import CheckConstraint
 from datetime import datetime, UTC
-from flask_login import UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
 from enum import Enum
+
+from flask_login import UserMixin
+from sqlalchemy.orm import foreign, relationship
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # since datetime.utcnow is deprecated
@@ -35,6 +36,23 @@ class User(UserMixin, db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
                            onupdate=utc_now)
+
+    group_memberships = relationship(
+        "UserGroupMembership",
+        back_populates="user",
+        foreign_keys="UserGroupMembership.user_id",
+    )
+    transactions = relationship(
+        "Transaction",
+        back_populates="user",
+        foreign_keys="Transaction.user_id",
+    )
+    family_member_snapshots = relationship(
+        "FamilyMember",
+        back_populates="user",
+        primaryjoin="User.id == foreign(FamilyMember.global_user_id)",
+        foreign_keys="FamilyMember.global_user_id",
+    )
 
     def set_password(self, password):
         # Hash a raw password before storing it.
@@ -72,6 +90,21 @@ class Group(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     group_name = db.Column(db.String(50), nullable=False, unique=False)
 
+    memberships = relationship(
+        "UserGroupMembership",
+        back_populates="group",
+    )
+    transactions = relationship(
+        "Transaction",
+        back_populates="group",
+        foreign_keys="Transaction.group_id",
+    )
+    family_profile = relationship(
+        "FamilyGroup",
+        back_populates="global_group",
+        uselist=False,
+    )
+
     def to_dict(self):
         # JSON-friendly serialization for group records.
         return {
@@ -106,6 +139,17 @@ class UserGroupMembership(db.Model):
     user_role = db.Column(db.Enum(GroupRole), nullable=False,
                           default=GroupRole.MEMBER, unique=False)
 
+    user = relationship(
+        "User",
+        back_populates="group_memberships",
+        foreign_keys=[user_id],
+    )
+    group = relationship(
+        "Group",
+        back_populates="memberships",
+        foreign_keys=[group_id],
+    )
+
     def to_dict(self):
         # Serialize membership records for API responses.
         return {
@@ -137,6 +181,17 @@ class Transaction(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
                            onupdate=utc_now)
+
+    user = relationship(
+        "User",
+        back_populates="transactions",
+        foreign_keys=[user_id],
+    )
+    group = relationship(
+        "Group",
+        back_populates="transactions",
+        foreign_keys=[group_id],
+    )
 
     def to_dict(self):
         # Convert transaction to JSON-friendly dictionary.
@@ -174,6 +229,29 @@ class FamilyGroup(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
                            onupdate=utc_now)
 
+    global_group = relationship(
+        "Group",
+        back_populates="family_profile",
+        foreign_keys=[global_group_id],
+    )
+    owner = relationship(
+        "User",
+        primaryjoin="FamilyGroup.owner_id == foreign(User.id)",
+        foreign_keys="FamilyGroup.owner_id",
+    )
+    family_members = relationship(
+        "FamilyMember",
+        back_populates="family_group",
+    )
+    family_goals = relationship(
+        "FamilyGoal",
+        back_populates="family_group",
+    )
+    family_transactions = relationship(
+        "FamilyTransaction",
+        back_populates="family_group",
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -192,6 +270,11 @@ class FamilyGroup(db.Model):
 class FamilyMember(db.Model):
     __tablename__ = "family_members"
 
+    __table_args__ = (
+        db.UniqueConstraint("family_group_id", "global_user_id",
+                            name="unique_family_member"),
+    )
+
     id = db.Column(db.Integer, primary_key=True)
     family_group_id = db.Column(
         db.Integer,
@@ -208,9 +291,20 @@ class FamilyMember(db.Model):
     last_updated = db.Column(db.DateTime, nullable=False, default=utc_now,
                              onupdate=utc_now)
 
-    __table_args__ = (
-        db.UniqueConstraint("family_group_id", "global_user_id",
-                            name="unique_family_member"),
+    family_group = relationship(
+        "FamilyGroup",
+        back_populates="family_members",
+        foreign_keys=[family_group_id],
+    )
+    user = relationship(
+        "User",
+        back_populates="family_member_snapshots",
+        primaryjoin="foreign(FamilyMember.global_user_id) == User.id",
+        foreign_keys="FamilyMember.global_user_id",
+    )
+    cached_transactions = relationship(
+        "FamilyTransaction",
+        back_populates="family_member",
     )
 
     def to_dict(self):
@@ -248,6 +342,17 @@ class FamilyTransaction(db.Model):
     transaction_type = db.Column(db.String(50), nullable=False, default="savings")
     recorded_at = db.Column(db.DateTime, nullable=False, default=utc_now)
 
+    family_group = relationship(
+        "FamilyGroup",
+        back_populates="family_transactions",
+        foreign_keys=[family_group_id],
+    )
+    family_member = relationship(
+        "FamilyMember",
+        back_populates="cached_transactions",
+        foreign_keys=[family_member_id],
+    )
+
     def to_dict(self):
         return {
             "id": self.id,
@@ -278,6 +383,12 @@ class FamilyGoal(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
                            onupdate=utc_now)
+
+    family_group = relationship(
+        "FamilyGroup",
+        back_populates="family_goals",
+        foreign_keys=[family_group_id],
+    )
 
     def to_dict(self):
         return {
