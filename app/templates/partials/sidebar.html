@@ -30,13 +30,15 @@ this belongs in the sidebar partial
         <a href="{{ url_for('main.dashboard')}}"
             class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' else '' }}"><i
                 class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-        <a href="#" class="nav-link"><i class="bi bi-wallet2"></i> Transactions</a>
+        <a href="{{ url_for('main.transactions')}}"
+            class="nav-link {{ 'active' if request.endpoint == 'main.transactions' else '' }}"><i class="bi bi-wallet2"></i> Transactions</a>
         <a href="#" class="nav-link"><i class="bi bi-bullseye"></i> Targets</a>
         <div class="nav-section-label">Social</div>
         <a href="{{ url_for('main.leaderboard')}}"
             class="nav-link {{ 'active' if request.endpoint == 'main.leaderboard' else '' }}"><i class="bi bi-trophy"></i>
             Leaderboard</a>
-        <a href="#" class="nav-link"><i class="bi bi-people"></i> Groups</a>
+        <a href="{{ url_for('main.groups')}}"
+            class="nav-link {{ 'active' if request.endpoint == 'main.groups' else '' }}"><i class="bi bi-people"></i> Groups</a>
         <div class="nav-section-label">Tools</div>
         <a href="{{ url_for('main.debt_calculator') }}"
             class="nav-link {{ 'active' if request.endpoint == 'main.debt_calculator' else '' }}"><i class="bi bi-calculator"></i> Debt Calculator</a>

@@ -65,13 +65,25 @@ async function fetchLeaderboardData() {
             worldLeaderboard = [];
         }
         
-        // TODO: make this dynamic; currently using hardcoded group_id = 1
-        const familyResponse = await fetch("/api/private/leaderboard/family/1");
-        if (familyResponse.ok) {
-            const data = await familyResponse.json();
-            familyLeaderboard = data.leaderboard || [];
+        const groupsRes = await fetch("/api/private/me/groups");
+        let familyGroupId = null;
+        if (groupsRes.ok) {
+            const gdata = await groupsRes.json();
+            const gl = gdata.groups || [];
+            if (gl.length) familyGroupId = gl[0].id;
+        }
+        if (familyGroupId != null) {
+            const familyResponse = await fetch(
+                `/api/private/leaderboard/family/${familyGroupId}`
+            );
+            if (familyResponse.ok) {
+                const data = await familyResponse.json();
+                familyLeaderboard = data.leaderboard || [];
+            } else {
+                console.warn("No family group data available");
+                familyLeaderboard = [];
+            }
         } else {
-            console.warn("No family group data available");
             familyLeaderboard = [];
         }
     } catch (error) {
