@@ -1,0 +1,70 @@
+/* Transactions page — extends dashboard + base tokens */
+
+.txn-total {
+    font-size: 2.25rem;
+    color: var(--accent-teal);
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 800;
+}
+
+.txn-page-table .txn-actions-col {
+    width: 140px;
+    white-space: nowrap;
+}
+
+.txn-type-pill {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    text-transform: capitalize;
+}
+
+.txn-type-savings {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    border-color: rgba(45, 212, 168, 0.35);
+}
+
+.txn-type-expense {
+    background: var(--accent-rose-dim);
+    color: var(--accent-rose);
+    border-color: rgba(244, 63, 94, 0.35);
+}
+
+.txn-type-transfer {
+    background: var(--accent-blue-dim);
+    color: var(--accent-blue);
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+.txn-amount-pos {
+    color: var(--accent-teal);
+    font-weight: 700;
+}
+
+.txn-amount-neg {
+    color: var(--accent-rose);
+    font-weight: 700;
+}
+
+.txn-modal-surface {
+    background: var(--surface-2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+}
+
+.txn-modal-surface .form-control,
+.txn-modal-surface .form-select {
+    background: var(--surface-1);
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.txn-modal-surface .form-control:focus,
+.txn-modal-surface .form-select:focus {
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 0 0.2rem var(--accent-teal-dim);
+}
