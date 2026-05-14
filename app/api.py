@@ -13,6 +13,7 @@ from app.models import (
     Group,
     GroupRole,
     FamilyGroup,
+    SavingsTarget
 )
 
 # Public API routes are intended for external or unauthenticated clients.
@@ -34,6 +35,34 @@ def require_json_payload():
     if payload is None:
         return None, json_error("Request must be JSON", 400)
     return payload, None
+
+
+def _parse_positive_number(value):
+    # Parse a value into a float that must be strictly positive.
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number <= 0:
+        return None
+    return number
+
+
+def _parse_date(value):
+    # Parse an ISO YYYY-MM-DD string into a date.
+    from datetime import date
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _get_owned_target(target_id):
+    # Load a savings target only if it belongs to the current user.
+    target = db.session.get(SavingsTarget, target_id)
+    if target is None or target.user_id != current_user.id:
+        return None
+    return target
 
 
 def mc_pmt(rate, nper, pv):
@@ -221,6 +250,127 @@ def api_family_leaderboard(group_id):
     leaderboard = _family_leaderboard_payload(leaderboard_query)
 
     return jsonify(leaderboard=leaderboard)
+
+
+@private_api.route("/targets", methods=["GET"])
+def api_targets_list():
+    # List the current user's savings targets, newest first.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    targets = (
+        SavingsTarget.query
+        .filter_by(user_id=current_user.id)
+        .order_by(SavingsTarget.created_at.desc())
+        .all()
+    )
+    return jsonify(targets=[t.to_dict() for t in targets])
+
+
+@private_api.route("/targets", methods=["POST"])
+def api_targets_create():
+    # Create a savings target owned by the current user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    name = (payload.get("name") or "").strip()
+    if not name or len(name) > 100:
+        return json_error("A target name (1-100 characters) is required", 400)
+
+    target_amount = _parse_positive_number(payload.get("target_amount"))
+    if target_amount is None:
+        return json_error("target_amount must be a positive number", 400)
+
+    deadline = _parse_date(payload.get("deadline"))
+    if deadline is None:
+        return json_error("deadline must be a valid YYYY-MM-DD date", 400)
+
+    emoji = (payload.get("emoji") or "🎯").strip() or "🎯"
+
+    target = SavingsTarget(
+        user_id=current_user.id,
+        name=name,
+        emoji=emoji,
+        target_amount=target_amount,
+        current_amount=0,
+        deadline=deadline,
+    )
+    db.session.add(target)
+    db.session.commit()
+    return jsonify(target=target.to_dict()), 201
+
+
+@private_api.route("/targets/<int:target_id>", methods=["PUT"])
+def api_targets_update(target_id):
+    # Update fields of a savings target owned by the current user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    target = _get_owned_target(target_id)
+    if target is None:
+        return json_error("Target not found", 404)
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    if "name" in payload:
+        name = (payload.get("name") or "").strip()
+        if not name or len(name) > 100:
+            return json_error("A target name (1-100 characters) is required", 400)
+        target.name = name
+
+    if "target_amount" in payload:
+        target_amount = _parse_positive_number(payload.get("target_amount"))
+        if target_amount is None:
+            return json_error("target_amount must be a positive number", 400)
+        target.target_amount = target_amount
+
+    if "deadline" in payload:
+        deadline = _parse_date(payload.get("deadline"))
+        if deadline is None:
+            return json_error("deadline must be a valid YYYY-MM-DD date", 400)
+        target.deadline = deadline
+
+    if "emoji" in payload:
+        target.emoji = (payload.get("emoji") or "🎯").strip() or "🎯"
+
+    db.session.commit()
+    return jsonify(target=target.to_dict())
+
+
+@private_api.route("/targets/<int:target_id>", methods=["DELETE"])
+def api_targets_delete(target_id):
+    # Delete a savings target owned by the current user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    target = _get_owned_target(target_id)
+    if target is None:
+        return json_error("Target not found", 404)
+    db.session.delete(target)
+    db.session.commit()
+    return jsonify(success=True)
+
+
+@private_api.route("/targets/<int:target_id>/contribute", methods=["POST"])
+def api_targets_contribute(target_id):
+    # Add a positive contribution to a savings target's current_amount.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    target = _get_owned_target(target_id)
+    if target is None:
+        return json_error("Target not found", 404)
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    amount = _parse_positive_number(payload.get("amount"))
+    if amount is None:
+        return json_error("amount must be a positive number", 400)
+
+    target.current_amount = float(target.current_amount or 0) + amount
+    db.session.commit()
+    return jsonify(target=target.to_dict())
 
 
 @public_api.route("/debt/loan/repayments", methods=["POST"])
