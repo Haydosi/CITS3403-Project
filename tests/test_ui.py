@@ -120,6 +120,16 @@ class TestProtectedRoutes(SeleniumTestCase):
         self.driver.get(f"{BASE}/leaderboard")
         self.assertNotIn("login", self.driver.current_url)
 
+    def test_transactions_redirects_to_login_when_logged_out(self):
+        self.driver.get(f"{BASE}/transactions")
+        self.assertIn("login", self.driver.current_url)
+
+    def test_transactions_accessible_after_login(self):
+        self._login()
+        self.wait.until(EC.url_changes(f"{BASE}/login"))
+        self.driver.get(f"{BASE}/transactions")
+        self.assertNotIn("login", self.driver.current_url)
+
 
 if __name__ == "__main__":
     unittest.main()
