@@ -12,13 +12,6 @@ const EXPENSES = [
     {category: 'Other', amount: 470, color: '#64748b', icon: 'bi-three-dots'},
 ];
 
-const TARGETS = [
-    {name: 'Summer Trip', emoji: '✈️', current: 1400, goal: 2000, status: 'on-track', deadline: '2026-07-01'},
-    {name: 'New Laptop', emoji: '💻', current: 820, goal: 1500, status: 'at-risk', deadline: '2026-06-15'},
-    {name: 'Emergency Fund', emoji: '🛡️', current: 3200, goal: 5000, status: 'on-track', deadline: '2026-12-31'},
-    {name: 'Course Fee', emoji: '🎓', current: 150, goal: 800, status: 'behind', deadline: '2026-05-20'},
-];
-
 const TRANSACTIONS = [
     {date: '2026-04-14', category: 'Dining', desc: 'Sushi World', amount: -42.50, color: '#f43f5e'},
     {date: '2026-04-13', category: 'Transport', desc: 'Uber to Campus', amount: -18.00, color: '#3b82f6'},
@@ -85,61 +78,6 @@ EXPENSES.forEach(e => {
     </div>`;
 });
 
-// ─── Targets ─────────────────────────────────────────────────
-// Bars start at width:0 and animate to the real % via setTimeout
-// so the CSS transition plays after the element is in the DOM.
-const targetsList = document.getElementById('targetsList');
-const statusLabel = {'on-track': 'On Track', 'at-risk': 'At Risk', 'behind': 'Behind'};
-
-document.getElementById('targetsCount').textContent = `${TARGETS.length} active`;
-
-TARGETS.forEach(t => {
-    const pct = Math.round((t.current / t.goal) * 100);
-    targetsList.innerHTML += `
-    <div class="target-item">
-        <div class="target-header">
-            <span class="target-name">
-                <span class="target-emoji">${t.emoji}</span>
-                ${t.name}
-            </span>
-            <span class="forecast-badge ${t.status}">${statusLabel[t.status]}</span>
-        </div>
-        <div class="target-progress-row">
-            <div class="target-progress-bar">
-                <div class="target-progress-fill ${t.status}" style="width: 0%" data-width="${pct}%"></div>
-            </div>
-            <span class="target-amounts"><strong>$${t.current.toLocaleString()}</strong> / $${t.goal.toLocaleString()}</span>
-        </div>
-    </div>`;
-});
-
-setTimeout(() => {
-    document.querySelectorAll('.target-progress-fill').forEach(bar => {
-        bar.style.width = bar.dataset.width;
-    });
-}, 300);
-
-// ─── Monthly Momentum ───────────────────────────────────────
-const onTrack = TARGETS.filter(t => t.status === 'on-track').length;
-const atRisk = TARGETS.filter(t => t.status === 'at-risk').length;
-const behind = TARGETS.filter(t => t.status === 'behind').length;
-const pctAchieved = Math.round((onTrack / TARGETS.length) * 100);
-
-document.getElementById('momentumSet').textContent = TARGETS.length;
-document.getElementById('momentumOnTrack').textContent = onTrack;
-document.getElementById('momentumAtRisk').textContent = atRisk;
-document.getElementById('momentumBehind').textContent = behind;
-
-// Animate the SVG ring arc: circumference = 2πr = 2π×50 ≈ 314
-const circumference = 2 * Math.PI * 50;
-setTimeout(() => {
-    const arc = document.getElementById('momentumArc');
-    const dashLen = (pctAchieved / 100) * circumference;
-    arc.style.transition = 'stroke-dasharray 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
-    arc.setAttribute('stroke-dasharray', `${dashLen} ${circumference}`);
-    document.getElementById('momentumPct').textContent = `${pctAchieved}%`;
-}, 400);
-
 // ─── Transactions ────────────────────────────────────────────
 // Category pill colour uses t.color with 20 (hex) = 12% opacity background.
 const txnBody = document.getElementById('txnBody');
@@ -179,43 +117,225 @@ overlay.addEventListener('click', () => {
     overlay.classList.remove('show');
 });
 
-// ─── New Target Form ─────────────────────────────────────────
-// Uses browser constraint validation before reading values.
-// Appends a new row to #targetsList and increments the count badge,
-// then resets the form and closes the modal via the Bootstrap Modal API.
-document.getElementById('saveTargetBtn').addEventListener('click', () => {
-    const form = document.getElementById('newTargetForm');
-    if (!form.checkValidity()) {
-        form.reportValidity();
+// ─── Savings Targets ─────────────────────────────────────────
+// Targets are loaded from the API and re-rendered after every change.
+// Rows are built with createElement + textContent (NOT innerHTML) because
+// target names/emojis are user-controlled — string interpolation would be a
+// stored-XSS hole.
+const STATUS_LABEL = {
+    'on-track': 'On Track',
+    'at-risk': 'At Risk',
+    'behind': 'Behind',
+    'completed': 'Completed',
+};
+
+let targets = [];
+
+async function loadTargets() {
+    const res = await fetch('/api/private/targets');
+    if (!res.ok) return;
+    const data = await res.json();
+    targets = data.targets;
+    renderTargets();
+    renderMomentum();
+}
+
+function buildTargetItem(t) {
+    const pct = Math.round(t.progress_percentage);
+
+    const item = document.createElement('div');
+    item.className = 'target-item';
+
+    // Header: name + emoji on the left, badge + action buttons on the right.
+    const header = document.createElement('div');
+    header.className = 'target-header';
+
+    const nameWrap = document.createElement('span');
+    nameWrap.className = 'target-name';
+    const emoji = document.createElement('span');
+    emoji.className = 'target-emoji';
+    emoji.textContent = t.emoji;
+    nameWrap.append(emoji, ' ', document.createTextNode(t.name));
+
+    const right = document.createElement('span');
+    right.className = 'target-header-right';
+
+    const badge = document.createElement('span');
+    badge.className = `forecast-badge ${t.status}`;
+    badge.textContent = STATUS_LABEL[t.status] || t.status;
+    right.appendChild(badge);
+
+    [['contribute', 'bi-plus-lg', 'Add contribution'],
+     ['edit', 'bi-pencil', 'Edit target'],
+     ['delete', 'bi-trash', 'Delete target']].forEach(([action, icon, title]) => {
+        const btn = document.createElement('button');
+        btn.className = 'target-action';
+        btn.dataset.action = action;
+        btn.dataset.id = t.id;
+        btn.title = title;
+        const i = document.createElement('i');
+        i.className = `bi ${icon}`;
+        btn.appendChild(i);
+        right.appendChild(btn);
+    });
+
+    header.append(nameWrap, right);
+
+    // Progress row: animated bar + "$current / $goal".
+    const progRow = document.createElement('div');
+    progRow.className = 'target-progress-row';
+
+    const bar = document.createElement('div');
+    bar.className = 'target-progress-bar';
+    const fill = document.createElement('div');
+    fill.className = `target-progress-fill ${t.status}`;
+    fill.style.width = '0%';
+    fill.dataset.width = `${pct}%`;
+    bar.appendChild(fill);
+
+    const amounts = document.createElement('span');
+    amounts.className = 'target-amounts';
+    const strong = document.createElement('strong');
+    strong.textContent = `$${Number(t.current_amount).toLocaleString()}`;
+    amounts.append(strong, ` / $${Number(t.target_amount).toLocaleString()}`);
+
+    progRow.append(bar, amounts);
+    item.append(header, progRow);
+    return item;
+}
+
+function renderTargets() {
+    const list = document.getElementById('targetsList');
+    list.replaceChildren();
+    document.getElementById('targetsCount').textContent = `${targets.length} active`;
+
+    targets.forEach(t => list.appendChild(buildTargetItem(t)));
+
+    // Let the bars animate from 0 once they are in the DOM.
+    setTimeout(() => {
+        document.querySelectorAll('.target-progress-fill').forEach(bar => {
+            if (bar.dataset.width) bar.style.width = bar.dataset.width;
+        });
+    }, 100);
+}
+
+function renderMomentum() {
+    const onTrack = targets.filter(t => t.status === 'on-track' || t.status === 'completed').length;
+    const atRisk = targets.filter(t => t.status === 'at-risk').length;
+    const behind = targets.filter(t => t.status === 'behind').length;
+    const pctAchieved = targets.length ? Math.round((onTrack / targets.length) * 100) : 0;
+
+    document.getElementById('momentumSet').textContent = targets.length;
+    document.getElementById('momentumOnTrack').textContent = onTrack;
+    document.getElementById('momentumAtRisk').textContent = atRisk;
+    document.getElementById('momentumBehind').textContent = behind;
+
+    const circumference = 2 * Math.PI * 50;
+    setTimeout(() => {
+        const arc = document.getElementById('momentumArc');
+        const dashLen = (pctAchieved / 100) * circumference;
+        arc.style.transition = 'stroke-dasharray 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+        arc.setAttribute('stroke-dasharray', `${dashLen} ${circumference}`);
+        document.getElementById('momentumPct').textContent = `${pctAchieved}%`;
+    }, 200);
+}
+
+// ─── New / Edit Target Modal ─────────────────────────────────
+const targetModal = new bootstrap.Modal(document.getElementById('newTargetModal'));
+const targetForm = document.getElementById('newTargetForm');
+
+function openTargetModal(target) {
+    targetForm.reset();
+    document.getElementById('targetId').value = target ? target.id : '';
+    document.getElementById('newTargetModalLabel').textContent = target ? 'Edit Target' : 'Set New Target';
+    document.getElementById('saveTargetBtn').textContent = target ? 'Save Changes' : 'Create Target';
+    if (target) {
+        document.getElementById('targetName').value = target.name;
+        document.getElementById('targetAmount').value = target.target_amount;
+        document.getElementById('targetDeadline').value = target.deadline;
+        document.getElementById('targetEmoji').value = target.emoji;
+    }
+    targetModal.show();
+}
+
+document.getElementById('newTargetBtn').addEventListener('click', () => openTargetModal(null));
+
+document.getElementById('saveTargetBtn').addEventListener('click', async () => {
+    if (!targetForm.checkValidity()) {
+        targetForm.reportValidity();
         return;
     }
-    const name = document.getElementById('targetName').value;
-    const amount = parseInt(document.getElementById('targetAmount').value);
-    const emoji = document.getElementById('targetEmoji').value;
-
-    const targetsList = document.getElementById('targetsList');
-    const newItem = document.createElement('div');
-    newItem.className = 'target-item';
-    newItem.innerHTML = `
-    <div class="target-header">
-        <span class="target-name">
-            <span class="target-emoji">${emoji}</span>
-            ${name}
-        </span>
-        <span class="forecast-badge on-track">On Track</span>
-    </div>
-    <div class="target-progress-row">
-        <div class="target-progress-bar">
-            <div class="target-progress-fill on-track" style="width: 0%"></div>
-        </div>
-        <span class="target-amounts"><strong>$0</strong> / $${amount.toLocaleString()}</span>
-    </div>`;
-    targetsList.appendChild(newItem);
-
-    const countBadge = document.getElementById('targetsCount');
-    const currentCount = parseInt(countBadge.textContent) || TARGETS.length;
-    countBadge.textContent = `${currentCount + 1} active`;
-
-    form.reset();
-    bootstrap.Modal.getInstance(document.getElementById('newTargetModal')).hide();
+    const id = document.getElementById('targetId').value;
+    const body = {
+        name: document.getElementById('targetName').value,
+        target_amount: parseFloat(document.getElementById('targetAmount').value),
+        deadline: document.getElementById('targetDeadline').value,
+        emoji: document.getElementById('targetEmoji').value,
+    };
+    const res = await fetch(id ? `/api/private/targets/${id}` : '/api/private/targets', {
+        method: id ? 'PUT' : 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Could not save target.');
+        return;
+    }
+    targetModal.hide();
+    await loadTargets();
 });
+
+// Initial load.
+loadTargets();
+
+// ─── Target Actions: contribute / edit / delete ──────────────
+const contributeModal = new bootstrap.Modal(document.getElementById('contributeModal'));
+const contributeForm = document.getElementById('contributeForm');
+
+document.getElementById('targetsList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.target-action');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const target = targets.find(t => String(t.id) === String(id));
+    if (!target) return;
+
+    if (btn.dataset.action === 'edit') {
+        openTargetModal(target);
+    } else if (btn.dataset.action === 'delete') {
+        if (!confirm(`Delete "${target.name}"?`)) return;
+        const res = await fetch(`/api/private/targets/${id}`, {method: 'DELETE'});
+        if (res.ok) {
+            await loadTargets();
+        } else {
+            alert('Could not delete target.');
+        }
+    } else if (btn.dataset.action === 'contribute') {
+        contributeForm.reset();
+        document.getElementById('contributeTargetId').value = id;
+        document.getElementById('contributeTargetName').textContent = target.name;
+        contributeModal.show();
+    }
+});
+
+document.getElementById('saveContributeBtn').addEventListener('click', async () => {
+    if (!contributeForm.checkValidity()) {
+        contributeForm.reportValidity();
+        return;
+    }
+    const id = document.getElementById('contributeTargetId').value;
+    const amount = parseFloat(document.getElementById('contributeAmount').value);
+    const res = await fetch(`/api/private/targets/${id}/contribute`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({amount}),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Could not add contribution.');
+        return;
+    }
+    contributeModal.hide();
+    await loadTargets();
+});
+
