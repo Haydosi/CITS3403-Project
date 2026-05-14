@@ -25,6 +25,12 @@ def transactions():
     return render_template("transactions.html")
 
 
+@main.route("/groups")
+@login_required
+def groups():
+    return render_template("groups.html")
+
+
 @main.route("/debt-calculator")
 def debt_calculator():
     return render_template("debt_calculator.html")

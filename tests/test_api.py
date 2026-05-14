@@ -1,6 +1,5 @@
 import unittest
 from app import create_app, db
-from app.models import User
 
 
 class TestConfig:
@@ -137,6 +136,58 @@ class ApiTestCase(unittest.TestCase):
         self.assertIn("periods", response.json)
         self.assertIn("years", response.json)
         self.assertIn("months", response.json)
+
+    def test_groups_list_requires_auth(self):
+        self.assertEqual(self.client.get("/api/private/groups").status_code, 401)
+
+    def test_create_and_list_groups(self):
+        self._register_user()
+        self._login_user()
+        r = self.client.post("/api/private/groups", json={"group_name": "Test Fam"})
+        self.assertEqual(r.status_code, 201, r.get_json())
+        body = r.get_json()
+        self.assertEqual(body["group"]["group_name"], "Test Fam")
+        self.assertEqual(body["group"]["my_role"], "owner")
+        lst = self.client.get("/api/private/groups")
+        self.assertEqual(lst.status_code, 200)
+        self.assertEqual(len(lst.get_json()["groups"]), 1)
+
+    def test_invite_member_and_duplicate(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        r = self.client.post("/api/private/groups", json={"group_name": "Shared"})
+        self.assertEqual(r.status_code, 201)
+        gid = r.get_json()["group"]["id"]
+
+        self._register_user(email="member@example.com", password="password123")
+        self._login_user(email="owner@example.com", password="password123")
+        add = self.client.post(
+            f"/api/private/groups/{gid}/members", json={"email": "member@example.com"}
+        )
+        self.assertEqual(add.status_code, 201, add.get_json())
+        dup = self.client.post(
+            f"/api/private/groups/{gid}/members", json={"email": "member@example.com"}
+        )
+        self.assertEqual(dup.status_code, 409)
+
+        lst = self.client.get("/api/private/groups")
+        members = lst.get_json()["groups"][0]["members"]
+        self.assertEqual(len(members), 2)
+
+    def test_owner_removes_member(self):
+        self._register_user(email="o@o.com")
+        self._login_user(email="o@o.com")
+        gid = self.client.post("/api/private/groups", json={"group_name": "G"}).get_json()["group"]["id"]
+        self._register_user(email="m@m.com", password="password123")
+        self._login_user(email="o@o.com", password="password123")
+        self.client.post(f"/api/private/groups/{gid}/members", json={"email": "m@m.com"})
+        lst = self.client.get("/api/private/groups").get_json()
+        members = lst["groups"][0]["members"]
+        mid = next(m["id"] for m in members if m["email"] == "m@m.com")
+        rem = self.client.delete(f"/api/private/groups/{gid}/members/{mid}")
+        self.assertEqual(rem.status_code, 200)
+        lst2 = self.client.get("/api/private/groups").get_json()
+        self.assertEqual(len(lst2["groups"][0]["members"]), 1)
 
     def test_transactions_list_requires_auth(self):
         response = self.client.get("/api/private/transactions")

@@ -1,0 +1,85 @@
+/* Groups page */
+
+.groups-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.grp-card {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    background: var(--surface-1);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+}
+
+.grp-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.grp-title {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.grp-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.grp-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.grp-role-pill {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--accent-violet-dim);
+    color: var(--accent-violet);
+    border: 1px solid rgba(139, 92, 246, 0.35);
+}
+
+.grp-body {
+    padding: 0 20px 16px;
+}
+
+.grp-modal-surface {
+    background: var(--surface-2);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+}
+
+.grp-modal-surface .form-control {
+    background: var(--surface-1);
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.grp-modal-surface .form-control:focus {
+    border-color: var(--accent-teal);
+    box-shadow: 0 0 0 0.2rem var(--accent-teal-dim);
+}
+
+.grp-empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
