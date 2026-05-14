@@ -292,3 +292,84 @@ class FamilyGoal(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+# Thresholds for the computed savings-target status (see SavingsTarget.status).
+# Compared against (time_elapsed_ratio - progress_ratio).
+TARGET_ON_TRACK_GAP = 0.10
+TARGET_AT_RISK_GAP = 0.25
+
+
+# SavingsTarget table - per-user savings goals shown on the dashboard.
+class SavingsTarget(db.Model):
+    __tablename__ = "savings_targets"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False,
+    )
+    name = db.Column(db.String(100), nullable=False)
+    emoji = db.Column(db.String(16), nullable=False, default="🎯")
+    target_amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)
+    current_amount = db.Column(db.Numeric(precision=12, scale=2),
+                               nullable=False, default=0)
+    deadline = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
+                           onupdate=utc_now)
+
+    @property
+    def progress_percentage(self):
+        # Progress toward the goal as a 0-100 number, capped at 100.
+        target = float(self.target_amount or 0)
+        if target <= 0:
+            return 0.0
+        pct = float(self.current_amount or 0) / target * 100
+        return round(min(pct, 100.0), 2)
+
+    @property
+    def status(self):
+        # Computed "Success Forecast": compares progress against time elapsed.
+        target = float(self.target_amount or 0)
+        current = float(self.current_amount or 0)
+        progress_ratio = (current / target) if target > 0 else 0.0
+        if progress_ratio >= 1:
+            return "completed"
+
+        created = self.created_at
+        if created.tzinfo is not None:
+            created = created.replace(tzinfo=None)
+        deadline_dt = datetime.combine(self.deadline, datetime.min.time())
+        now = datetime.now(UTC).replace(tzinfo=None)
+
+        total_duration = (deadline_dt - created).total_seconds()
+        # Past the deadline (deadline counts as midnight of that day) and not yet complete.
+        if total_duration <= 0 or now >= deadline_dt:
+            return "behind"
+
+        elapsed = (now - created).total_seconds()
+        time_ratio = max(0.0, min(elapsed / total_duration, 1.0))
+        gap = time_ratio - progress_ratio
+        if gap <= TARGET_ON_TRACK_GAP:
+            return "on-track"
+        if gap <= TARGET_AT_RISK_GAP:
+            return "at-risk"
+        return "behind"
+
+    def to_dict(self):
+        # JSON-friendly serialization for API responses.
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "emoji": self.emoji,
+            "target_amount": float(self.target_amount) if self.target_amount is not None else 0,
+            "current_amount": float(self.current_amount) if self.current_amount is not None else 0,
+            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "status": self.status,
+            "progress_percentage": self.progress_percentage,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+        }
