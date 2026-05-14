@@ -218,16 +218,7 @@ def api_family_leaderboard(group_id):
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     )
     
-    leaderboard = []
-    for member_id, global_user_id, first_name, last_name, email, total_saved in leaderboard_query:
-        leaderboard.append({
-            "id": member_id,
-            "global_user_id": global_user_id,
-            "first_name": first_name,
-            "last_name": last_name,
-            "email": email,
-            "total_saved": float(total_saved) if total_saved else 0,
-        })
+    leaderboard = _family_leaderboard_payload(leaderboard_query)
 
     return jsonify(leaderboard=leaderboard)
 

@@ -19,6 +19,12 @@ def leaderboard():
     return render_template("leaderboard.html")
 
 
+@main.route("/transactions")
+@login_required
+def transactions():
+    return render_template("transactions.html")
+
+
 @main.route("/groups")
 @login_required
 def groups():

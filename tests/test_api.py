@@ -189,6 +189,60 @@ class ApiTestCase(unittest.TestCase):
         lst2 = self.client.get("/api/private/groups").get_json()
         self.assertEqual(len(lst2["groups"][0]["members"]), 1)
 
+    def test_transactions_list_requires_auth(self):
+        response = self.client.get("/api/private/transactions")
+        self.assertEqual(response.status_code, 401)
+
+    def test_my_groups_requires_auth(self):
+        response = self.client.get("/api/private/me/groups")
+        self.assertEqual(response.status_code, 401)
+
+    def test_transactions_create_list_patch_delete(self):
+        self._register_user()
+        self._login_user()
+        create = self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": 75.25,
+                "transaction_type": "savings",
+                "description": "Test save",
+            },
+        )
+        self.assertEqual(create.status_code, 201, create.get_json())
+        tid = create.get_json()["transaction"]["id"]
+        self.assertEqual(create.get_json()["transaction"]["transaction_type"], "savings")
+
+        listed = self.client.get("/api/private/transactions")
+        self.assertEqual(listed.status_code, 200)
+        body = listed.get_json()
+        self.assertEqual(len(body["transactions"]), 1)
+        self.assertAlmostEqual(body["total_balance"], 75.25, places=2)
+
+        patched = self.client.patch(
+            f"/api/private/transactions/{tid}",
+            json={"amount": 100, "transaction_type": "expense"},
+        )
+        self.assertEqual(patched.status_code, 200)
+        self.assertAlmostEqual(patched.get_json()["transaction"]["amount"], 100.0, places=2)
+
+        listed2 = self.client.get("/api/private/transactions")
+        self.assertAlmostEqual(listed2.get_json()["total_balance"], 100.0, places=2)
+
+        deleted = self.client.delete(f"/api/private/transactions/{tid}")
+        self.assertEqual(deleted.status_code, 200)
+        listed3 = self.client.get("/api/private/transactions")
+        self.assertEqual(len(listed3.get_json()["transactions"]), 0)
+        self.assertAlmostEqual(listed3.get_json()["total_balance"], 0.0, places=2)
+
+    def test_transaction_post_unknown_group_forbidden(self):
+        self._register_user()
+        self._login_user()
+        response = self.client.post(
+            "/api/private/transactions",
+            json={"amount": 10, "group_id": 424242},
+        )
+        self.assertEqual(response.status_code, 403)
+
 
 if __name__ == "__main__":
     unittest.main()
