@@ -1,36 +1,70 @@
-// ─── Mock Data ───────────────────────────────────────────────
-// Placeholder data — replace with real API responses when the backend is ready.
+// ─── Type config: maps transaction_type → display colour + label ─
+const TYPE_CONFIG = {
+    savings:  { color: '#10b981', label: 'Savings' },
+    expense:  { color: '#f43f5e', label: 'Expense' },
+    transfer: { color: '#3b82f6', label: 'Transfer' },
+};
+function typeConf(type) {
+    return TYPE_CONFIG[type] || { color: '#64748b', label: type || 'Other' };
+}
 
-const EXPENSES = [
-    {category: 'Dining', amount: 620, color: '#f43f5e', icon: 'bi-cup-hot'},
-    {category: 'Groceries', amount: 480, color: '#f59e0b', icon: 'bi-basket'},
-    {category: 'Transport', amount: 350, color: '#3b82f6', icon: 'bi-bus-front'},
-    {category: 'Utilities', amount: 290, color: '#8b5cf6', icon: 'bi-lightning'},
-    {category: 'Entertainment', amount: 410, color: '#06b6d4', icon: 'bi-controller'},
-    {category: 'Shopping', amount: 520, color: '#ec4899', icon: 'bi-bag'},
-    {category: 'Health', amount: 280, color: '#10b981', icon: 'bi-heart-pulse'},
-    {category: 'Other', amount: 470, color: '#64748b', icon: 'bi-three-dots'},
-];
+// ─── Dashboard Summary ─────────────────────────────────────────
+let expenseChart = null;
 
-const TRANSACTIONS = [
-    {date: '2026-04-14', category: 'Dining', desc: 'Sushi World', amount: -42.50, color: '#f43f5e'},
-    {date: '2026-04-13', category: 'Transport', desc: 'Uber to Campus', amount: -18.00, color: '#3b82f6'},
-    {date: '2026-04-13', category: 'Groceries', desc: 'Woolworths', amount: -67.30, color: '#f59e0b'},
-    {date: '2026-04-12', category: 'Entertainment', desc: 'Spotify Premium', amount: -12.99, color: '#06b6d4'},
-    {date: '2026-04-12', category: 'Shopping', desc: 'Amazon — USB-C Hub', amount: -35.00, color: '#ec4899'},
-    {date: '2026-04-11', category: 'Utilities', desc: 'Electricity Bill', amount: -142.00, color: '#8b5cf6'},
-    {date: '2026-04-10', category: 'Health', desc: 'Pharmacy', amount: -24.50, color: '#10b981'},
-];
+async function loadDashboardSummary() {
+    const res = await fetch('/api/private/dashboard/summary');
+    if (!res.ok) return;
+    const data = await res.json();
+    renderStatCards(data);
+    renderExpenseChart(data);
+    renderTransactions(data.recent_transactions);
+}
 
-// ─── Expense Donut Chart ─────────────────────────────────────
-const ctx = document.getElementById('expenseDonut').getContext('2d');
-new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-        labels: EXPENSES.map(e => e.category),
+function fmt(amount) {
+    const n = Number(amount);
+    const s = Math.abs(n).toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return (n < 0 ? '-' : '') + '$' + s;
+}
+
+function renderStatCards(data) {
+    document.getElementById('statBalance').textContent = fmt(data.total_balance);
+    document.getElementById('statIncome').textContent = fmt(data.monthly_income);
+    document.getElementById('statExpenses').textContent = fmt(data.monthly_expenses);
+    document.getElementById('statSavings').textContent = fmt(data.monthly_savings);
+}
+
+function renderExpenseChart(data) {
+    const breakdown = data.expense_breakdown;
+    const canvas = document.getElementById('expenseDonut');
+    const legendEl = document.getElementById('chartLegend');
+    const savedVal = document.getElementById('chartSavedValue');
+
+    if (savedVal) savedVal.textContent = fmt(data.monthly_savings);
+
+    if (!breakdown || !breakdown.length) {
+        legendEl.innerHTML = '<div class="text-muted small text-center py-2" style="grid-column:1/-1">No transactions this month.</div>';
+        if (!expenseChart) {
+            expenseChart = new Chart(canvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['No data'],
+                    datasets: [{data: [1], backgroundColor: ['rgba(255,255,255,0.05)'], borderColor: 'transparent', borderWidth: 0}]
+                },
+                options: {cutout: '68%', responsive: true, maintainAspectRatio: true, plugins: {legend: {display: false}, tooltip: {enabled: false}}}
+            });
+        }
+        return;
+    }
+
+    const labels = breakdown.map(e => typeConf(e.type).label);
+    const amounts = breakdown.map(e => Math.abs(e.amount));
+    const colors = breakdown.map(e => typeConf(e.type).color);
+
+    const chartData = {
+        labels,
         datasets: [{
-            data: EXPENSES.map(e => e.amount),
-            backgroundColor: EXPENSES.map(e => e.color),
+            data: amounts,
+            backgroundColor: colors,
             borderColor: 'transparent',
             borderWidth: 0,
             hoverBorderColor: '#fff',
@@ -38,70 +72,105 @@ new Chart(ctx, {
             spacing: 3,
             borderRadius: 4,
         }]
-    },
-    options: {
-        cutout: '68%',
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: {display: false},
-            tooltip: {
-                backgroundColor: 'rgba(17,24,32,0.95)',
-                titleColor: '#e8ecf1',
-                bodyColor: '#7a8ba3',
-                borderColor: 'rgba(255,255,255,0.08)',
-                borderWidth: 1,
-                cornerRadius: 10,
-                padding: 12,
-                bodyFont: {family: 'Plus Jakarta Sans'},
-                titleFont: {family: 'Plus Jakarta Sans', weight: 600},
-                callbacks: {
-                    label: (ctx) => ` $${ctx.parsed.toLocaleString()}`
-                }
+    };
+
+    if (expenseChart) {
+        expenseChart.data = chartData;
+        expenseChart.update();
+    } else {
+        expenseChart = new Chart(canvas.getContext('2d'), {
+            type: 'doughnut',
+            data: chartData,
+            options: {
+                cutout: '68%',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {display: false},
+                    tooltip: {
+                        backgroundColor: 'rgba(17,24,32,0.95)',
+                        titleColor: '#e8ecf1',
+                        bodyColor: '#7a8ba3',
+                        borderColor: 'rgba(255,255,255,0.08)',
+                        borderWidth: 1,
+                        cornerRadius: 10,
+                        padding: 12,
+                        bodyFont: {family: 'Plus Jakarta Sans'},
+                        titleFont: {family: 'Plus Jakarta Sans', weight: 600},
+                        callbacks: {label: (ctx) => ` $${ctx.parsed.toLocaleString()}`}
+                    }
+                },
+                animation: {animateRotate: true, duration: 1200, easing: 'easeOutQuart'}
             }
-        },
-        animation: {
-            animateRotate: true,
-            duration: 1200,
-            easing: 'easeOutQuart',
-        }
+        });
     }
-});
 
-const legendEl = document.getElementById('chartLegend');
-EXPENSES.forEach(e => {
-    legendEl.innerHTML += `
-    <div class="legend-item">
-        <span class="legend-dot" style="background:${e.color}"></span>
-        ${e.category}
-        <span class="legend-amount">$${e.amount}</span>
-    </div>`;
-});
+    legendEl.innerHTML = '';
+    breakdown.forEach(e => {
+        const conf = typeConf(e.type);
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        item.innerHTML = `<span class="legend-dot" style="background:${conf.color}"></span>${conf.label}<span class="legend-amount">${fmt(Math.abs(e.amount))}</span>`;
+        legendEl.appendChild(item);
+    });
+}
 
-// ─── Transactions ────────────────────────────────────────────
-// Category pill colour uses t.color with 20 (hex) = 12% opacity background.
-const txnBody = document.getElementById('txnBody');
-TRANSACTIONS.forEach(t => {
-    const isExpense = t.amount < 0;
+// Builds a single transaction row using DOM methods — description is
+// user-controlled so we must use textContent, not innerHTML, to prevent XSS.
+function buildTxnRow(t) {
+    const conf = typeConf(t.transaction_type);
+    const amount = parseFloat(t.amount);
+    const isExpense = amount < 0;
     const formatted = isExpense
-        ? `-$${Math.abs(t.amount).toFixed(2)}`
-        : `+$${t.amount.toFixed(2)}`;
-    const dateObj = new Date(t.date + 'T00:00:00');
+        ? `-$${Math.abs(amount).toFixed(2)}`
+        : `+$${amount.toFixed(2)}`;
+    const dateObj = new Date(t.created_at);
     const dateStr = dateObj.toLocaleDateString('en-AU', {day: 'numeric', month: 'short'});
-    txnBody.innerHTML += `
-    <tr>
-        <td class="txn-date">${dateStr}</td>
-        <td>
-            <span class="txn-category-pill" style="background:${t.color}20; color:${t.color}">
-                ${t.category}
-            </span>
-        </td>
-        <td>${t.desc}</td>
-        <td class="text-end">
-            <span class="txn-amount ${isExpense ? 'expense' : 'income-txn'}">${formatted}</span>
-        </td>
-    </tr>`;
-});
+
+    const tr = document.createElement('tr');
+
+    const tdDate = document.createElement('td');
+    tdDate.className = 'txn-date';
+    tdDate.textContent = dateStr;
+
+    const tdCat = document.createElement('td');
+    const pill = document.createElement('span');
+    pill.className = 'txn-category-pill';
+    pill.style.cssText = `background:${conf.color}20; color:${conf.color}`;
+    pill.textContent = conf.label;
+    tdCat.appendChild(pill);
+
+    const tdDesc = document.createElement('td');
+    tdDesc.textContent = t.description || '—';
+
+    const tdAmt = document.createElement('td');
+    tdAmt.className = 'text-end';
+    const amtSpan = document.createElement('span');
+    amtSpan.className = `txn-amount ${isExpense ? 'expense' : 'income-txn'}`;
+    amtSpan.textContent = formatted;
+    tdAmt.appendChild(amtSpan);
+
+    tr.append(tdDate, tdCat, tdDesc, tdAmt);
+    return tr;
+}
+
+function renderTransactions(transactions) {
+    const txnBody = document.getElementById('txnBody');
+    txnBody.replaceChildren();
+    if (!transactions || !transactions.length) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 4;
+        td.className = 'text-center text-muted py-3';
+        td.textContent = 'No transactions yet.';
+        tr.appendChild(td);
+        txnBody.appendChild(tr);
+        return;
+    }
+    transactions.forEach(t => txnBody.appendChild(buildTxnRow(t)));
+}
+
+loadDashboardSummary();
 
 // ─── Sidebar Toggle (mobile) ────────────────────────────────
 const sidebar = document.getElementById('sidebar');
@@ -338,4 +407,3 @@ document.getElementById('saveContributeBtn').addEventListener('click', async () 
     contributeModal.hide();
     await loadTargets();
 });
-

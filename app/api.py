@@ -1,4 +1,5 @@
 import math
+from datetime import datetime, UTC
 
 from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
@@ -923,3 +924,76 @@ def api_group_remove_member(group_id, user_id):
     db.session.commit()
     _maybe_prune_empty_group(group_id)
     return jsonify(success=True)
+
+
+@private_api.route("/dashboard/summary", methods=["GET"])
+def api_dashboard_summary():
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    month_start = datetime(now.year, now.month, 1)
+
+    total_balance = float(
+        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(Transaction.user_id == current_user.id)
+        .scalar() or 0
+    )
+
+    monthly_income = float(
+        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.created_at >= month_start,
+            Transaction.amount > 0,
+        )
+        .scalar() or 0
+    )
+
+    monthly_expenses_raw = float(
+        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.created_at >= month_start,
+            Transaction.amount < 0,
+        )
+        .scalar() or 0
+    )
+    monthly_expenses = abs(monthly_expenses_raw)
+
+    breakdown_rows = (
+        db.session.query(
+            Transaction.transaction_type,
+            func.sum(Transaction.amount).label("total"),
+        )
+        .filter(
+            Transaction.user_id == current_user.id,
+            Transaction.created_at >= month_start,
+        )
+        .group_by(Transaction.transaction_type)
+        .all()
+    )
+    expense_breakdown = [
+        {"type": tx_type, "amount": float(total or 0)}
+        for tx_type, total in breakdown_rows
+    ]
+
+    rows = (
+        db.session.query(Transaction, Group.group_name)
+        .outerjoin(Group, Transaction.group_id == Group.id)
+        .filter(Transaction.user_id == current_user.id)
+        .order_by(Transaction.created_at.desc())
+        .limit(7)
+        .all()
+    )
+    recent_transactions = [_transaction_to_json(tx, gname) for tx, gname in rows]
+
+    return jsonify(
+        total_balance=total_balance,
+        monthly_income=monthly_income,
+        monthly_expenses=monthly_expenses,
+        monthly_savings=monthly_income - monthly_expenses,
+        current_month=datetime.now(UTC).strftime("%B %Y"),
+        expense_breakdown=expense_breakdown,
+        recent_transactions=recent_transactions,
+    )

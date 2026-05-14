@@ -18,7 +18,7 @@
     <div class="top-bar anim-in">
         <div>
             <div class="page-title">Dashboard</div>
-            <div class="page-subtitle">Welcome back, Scout. Here's your financial snapshot for April 2026.</div>
+            <div class="page-subtitle">Welcome back, {{ current_user.first_name or current_user.username }}. Here's your financial snapshot for {{ current_month }}.</div>
         </div>
         <!-- Top Bar: page title + primary CTA -->
         <button class="btn btn-accent" id="newTargetBtn">
@@ -37,32 +37,28 @@
             <div class="stat-card balance anim-in anim-delay-1">
                 <div class="stat-icon"><i class="bi bi-safe"></i></div>
                 <div class="stat-label">Total Balance</div>
-                <div class="stat-value">$12,480</div>
-                <span class="stat-change positive"><i class="bi bi-arrow-up-short"></i>8.2%</span>
+                <div class="stat-value" id="statBalance">$0.00</div>
             </div>
         </div>
         <div class="col-xl-3 col-sm-6">
             <div class="stat-card income anim-in anim-delay-2">
                 <div class="stat-icon"><i class="bi bi-arrow-down-left"></i></div>
                 <div class="stat-label">Monthly Income</div>
-                <div class="stat-value">$5,200</div>
-                <span class="stat-change positive"><i class="bi bi-arrow-up-short"></i>3.1%</span>
+                <div class="stat-value" id="statIncome">$0.00</div>
             </div>
         </div>
         <div class="col-xl-3 col-sm-6">
             <div class="stat-card expenses anim-in anim-delay-3">
                 <div class="stat-icon"><i class="bi bi-arrow-up-right"></i></div>
                 <div class="stat-label">Monthly Expenses</div>
-                <div class="stat-value">$3,420</div>
-                <span class="stat-change negative"><i class="bi bi-arrow-up-short"></i>5.7%</span>
+                <div class="stat-value" id="statExpenses">$0.00</div>
             </div>
         </div>
         <div class="col-xl-3 col-sm-6">
             <div class="stat-card savings anim-in anim-delay-4">
                 <div class="stat-icon"><i class="bi bi-piggy-bank"></i></div>
                 <div class="stat-label">Monthly Savings</div>
-                <div class="stat-value">$1,780</div>
-                <span class="stat-change positive"><i class="bi bi-arrow-up-short"></i>12.4%</span>
+                <div class="stat-value" id="statSavings">$0.00</div>
             </div>
         </div>
     </div>
@@ -79,13 +75,13 @@
             <div class="dash-card anim-in anim-delay-4">
                 <div class="dash-card-header">
                     <div class="dash-card-title">Expense Breakdown</div>
-                    <span class="dash-card-badge">April 2026</span>
+                    <span class="dash-card-badge">{{ current_month }}</span>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="expenseDonut"></canvas>
                     <div class="chart-center-label">
                         <span class="label-text">Saved</span>
-                        <span class="label-value">$1,780</span>
+                        <span class="label-value" id="chartSavedValue">$0.00</span>
                     </div>
                 </div>
                 <div class="legend-grid" id="chartLegend"></div>
@@ -116,7 +112,7 @@
             <div class="dash-card anim-in anim-delay-5">
                 <div class="dash-card-header">
                     <div class="dash-card-title">Monthly Momentum</div>
-                    <span class="dash-card-badge">April</span>
+                    <span class="dash-card-badge">{{ current_month_short }}</span>
                 </div>
                 <div class="momentum-ring-wrapper">
                     <div class="momentum-ring">
@@ -161,7 +157,7 @@
             </div>
         </div>
 
-        <!-- Recent Transactions table — rows injected by JS from TRANSACTIONS data -->
+        <!-- Recent Transactions table — rows injected by JS from API -->
         <div class="col-lg-8">
             <div class="dash-card anim-in anim-delay-6">
                 <div class="dash-card-header">
@@ -281,6 +277,6 @@
 {% block page_js %}
 <!-- Chart.js — used for the expense donut chart -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<!-- Dashboard logic: mock data, chart, targets, transactions, sidebar, modal form -->
+<!-- Dashboard logic: real API data, chart, targets, transactions, sidebar, modal form -->
 <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}
