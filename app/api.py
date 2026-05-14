@@ -4,7 +4,16 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 from app import db
-from app.models import User, Transaction, FamilyMember, FamilyTransaction, UserGroupMembership
+from app.models import (
+    User,
+    Transaction,
+    FamilyMember,
+    FamilyTransaction,
+    UserGroupMembership,
+    Group,
+    GroupRole,
+    FamilyGroup,
+)
 
 # Public API routes are intended for external or unauthenticated clients.
 # These endpoints can be consumed by frontend forms or third-party apps.
@@ -380,3 +389,396 @@ def api_debt_loan_sooner():
         rate=rate,
         frequency=freq,
     )
+
+
+def _family_leaderboard_payload(leaderboard_query):
+    # Build JSON rows for the family leaderboard query (user + totals per group).
+    rows = []
+    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+        rows.append(
+            {
+                "id": user_id,
+                "username": username,
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "total_saved": float(total_saved) if total_saved else 0,
+            }
+        )
+    return rows
+
+
+ALLOWED_TRANSACTION_TYPES = frozenset({"savings", "expense", "transfer"})
+
+
+def _user_in_group(user_id, group_id):
+    # True if the user belongs to the given group.
+    return (
+        UserGroupMembership.query.filter_by(
+            user_id=user_id, group_id=group_id
+        ).first()
+        is not None
+    )
+
+
+def _parse_optional_group_id(raw):
+    # None = no group; "invalid" = bad input; int = group id.
+    if raw in (None, "", 0, "0"):
+        return None
+    try:
+        gid = int(raw)
+    except (TypeError, ValueError):
+        return "invalid"
+    if gid < 1:
+        return "invalid"
+    return gid
+
+
+def _transaction_to_json(transaction, group_name=None):
+    # Serialize a transaction for JSON, optionally including the group label.
+    data = transaction.to_dict()
+    amt = data.get("amount")
+    if amt is not None:
+        data["amount"] = float(amt)
+    if group_name is not None:
+        data["group_name"] = group_name
+    return data
+
+
+@private_api.route("/me/groups", methods=["GET"])
+def api_my_groups():
+    # Groups the current user belongs to (for transaction forms).
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    groups = (
+        Group.query.join(
+            UserGroupMembership, UserGroupMembership.group_id == Group.id
+        )
+        .filter(UserGroupMembership.user_id == current_user.id)
+        .order_by(Group.group_name.asc())
+        .all()
+    )
+    return jsonify(groups=[g.to_dict() for g in groups])
+
+
+@private_api.route("/transactions", methods=["GET", "POST"])
+def api_transactions():
+    # List or create transactions for the logged-in user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+
+    if request.method == "GET":
+        total_balance = (
+            db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+            .filter(Transaction.user_id == current_user.id)
+            .scalar()
+        )
+        rows = (
+            db.session.query(Transaction, Group.group_name)
+            .outerjoin(Group, Transaction.group_id == Group.id)
+            .filter(Transaction.user_id == current_user.id)
+            .order_by(Transaction.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        return jsonify(
+            transactions=[
+                _transaction_to_json(tx, gname) for tx, gname in rows
+            ],
+            total_balance=float(total_balance) if total_balance else 0.0,
+        )
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    amount = payload.get("amount")
+    if amount is None:
+        return json_error("amount is required", 400)
+    try:
+        amount = float(amount)
+    except (TypeError, ValueError):
+        return json_error("Invalid amount", 400)
+
+    tx_type = (payload.get("transaction_type") or "savings").strip().lower()
+    if tx_type not in ALLOWED_TRANSACTION_TYPES:
+        return json_error("Invalid transaction_type", 400)
+
+    desc = payload.get("description")
+    if desc is not None:
+        desc = str(desc).strip()[:255] or None
+
+    group_id = _parse_optional_group_id(payload.get("group_id"))
+    if group_id == "invalid":
+        return json_error("Invalid group_id", 400)
+    if group_id is not None and not _user_in_group(current_user.id, group_id):
+        return json_error("You are not a member of that group", 403)
+
+    tx = Transaction(
+        user_id=current_user.id,
+        group_id=group_id,
+        amount=amount,
+        description=desc,
+        transaction_type=tx_type,
+    )
+    db.session.add(tx)
+    db.session.commit()
+    gname = None
+    if group_id:
+        g = Group.query.get(group_id)
+        gname = g.group_name if g else None
+    return jsonify(transaction=_transaction_to_json(tx, gname)), 201
+
+
+@private_api.route("/transactions/<int:transaction_id>", methods=["PATCH", "DELETE"])
+def api_transaction_detail(transaction_id):
+    # Update or delete a single transaction owned by the current user.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+
+    tx = Transaction.query.filter_by(
+        id=transaction_id, user_id=current_user.id
+    ).first()
+    if tx is None:
+        return json_error("Transaction not found", 404)
+
+    if request.method == "DELETE":
+        db.session.delete(tx)
+        db.session.commit()
+        return jsonify(success=True)
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    if "amount" in payload:
+        if payload["amount"] is None:
+            return json_error("amount cannot be null", 400)
+        try:
+            tx.amount = float(payload["amount"])
+        except (TypeError, ValueError):
+            return json_error("Invalid amount", 400)
+
+    if "description" in payload:
+        d = payload.get("description")
+        if d is None:
+            tx.description = None
+        else:
+            d = str(d).strip()[:255]
+            tx.description = d or None
+
+    if "transaction_type" in payload:
+        tt = (payload.get("transaction_type") or "").strip().lower()
+        if tt not in ALLOWED_TRANSACTION_TYPES:
+            return json_error("Invalid transaction_type", 400)
+        tx.transaction_type = tt
+
+    if "group_id" in payload:
+        raw = payload.get("group_id")
+        if raw in (None, "", 0, "0"):
+            tx.group_id = None
+        else:
+            group_id = _parse_optional_group_id(raw)
+            if group_id == "invalid":
+                return json_error("Invalid group_id", 400)
+            if not _user_in_group(current_user.id, group_id):
+                return json_error("You are not a member of that group", 403)
+            tx.group_id = group_id
+
+    db.session.commit()
+    gname = None
+    if tx.group_id:
+        g = Group.query.get(tx.group_id)
+        gname = g.group_name if g else None
+    return jsonify(transaction=_transaction_to_json(tx, gname))
+
+
+def _membership(user_id, group_id):
+    return UserGroupMembership.query.filter_by(
+        user_id=user_id, group_id=group_id
+    ).first()
+
+
+def _user_public_summary(u):
+    return {
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "first_name": u.first_name,
+        "last_name": u.last_name,
+    }
+
+
+def _group_detail_payload(group_id, my_membership):
+    g = Group.query.get(group_id)
+    if g is None:
+        return None
+    rows = UserGroupMembership.query.filter_by(group_id=group_id).order_by(
+        UserGroupMembership.id.asc()
+    ).all()
+    members = []
+    for m in rows:
+        u = User.query.get(m.user_id)
+        if u is None:
+            continue
+        entry = _user_public_summary(u)
+        entry["user_role"] = m.user_role.value if m.user_role else None
+        entry["membership_id"] = m.id
+        members.append(entry)
+    return {
+        **g.to_dict(),
+        "my_role": my_membership.user_role.value if my_membership.user_role else None,
+        "member_count": len(members),
+        "members": members,
+    }
+
+
+def _promote_next_owner(group_id, leaving_user_id):
+    nxt = (
+        UserGroupMembership.query.filter(
+            UserGroupMembership.group_id == group_id,
+            UserGroupMembership.user_id != leaving_user_id,
+        )
+        .order_by(UserGroupMembership.id.asc())
+        .first()
+    )
+    if nxt is not None:
+        nxt.user_role = GroupRole.OWNER
+
+
+def _maybe_prune_empty_group(group_id):
+    if UserGroupMembership.query.filter_by(group_id=group_id).count() > 0:
+        return
+    if FamilyGroup.query.filter_by(global_group_id=group_id).first() is not None:
+        return
+    Transaction.query.filter_by(group_id=group_id).update(
+        {Transaction.group_id: None}, synchronize_session=False
+    )
+    Group.query.filter_by(id=group_id).delete(synchronize_session=False)
+
+
+@private_api.route("/groups", methods=["GET", "POST"])
+def api_groups():
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+
+    if request.method == "GET":
+        mine = UserGroupMembership.query.filter_by(
+            user_id=current_user.id
+        ).all()
+        out = []
+        for m in mine:
+            payload = _group_detail_payload(m.group_id, m)
+            if payload:
+                out.append(payload)
+        return jsonify(groups=out)
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+    raw_name = payload.get("group_name")
+    if raw_name is None or not str(raw_name).strip():
+        return json_error("group_name is required", 400)
+    name = str(raw_name).strip()[:50]
+    g = Group(group_name=name)
+    db.session.add(g)
+    db.session.flush()
+    mem = UserGroupMembership(
+        user_id=current_user.id,
+        group_id=g.id,
+        user_role=GroupRole.OWNER,
+    )
+    db.session.add(mem)
+    db.session.commit()
+    return jsonify(group=_group_detail_payload(g.id, mem)), 201
+
+
+@private_api.route("/groups/<int:group_id>", methods=["PATCH"])
+def api_group_rename(group_id):
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    actor = _membership(current_user.id, group_id)
+    if actor is None:
+        return json_error("Not a member of this group", 403)
+    if actor.user_role not in (GroupRole.OWNER, GroupRole.ADMIN):
+        return json_error("Only owners and admins can rename the group", 403)
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+    raw_name = payload.get("group_name")
+    if raw_name is None or not str(raw_name).strip():
+        return json_error("group_name is required", 400)
+    g = Group.query.get(group_id)
+    if g is None:
+        return json_error("Group not found", 404)
+    g.group_name = str(raw_name).strip()[:50]
+    db.session.commit()
+    return jsonify(group=_group_detail_payload(group_id, actor))
+
+
+@private_api.route("/groups/<int:group_id>/members", methods=["POST"])
+def api_group_add_member(group_id):
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    actor = _membership(current_user.id, group_id)
+    if actor is None:
+        return json_error("Not a member of this group", 403)
+    if actor.user_role not in (GroupRole.OWNER, GroupRole.ADMIN):
+        return json_error("Only owners and admins can add members", 403)
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+    email = payload.get("email")
+    if not email or not str(email).strip():
+        return json_error("email is required", 400)
+    email = str(email).strip().lower()
+    new_user = User.query.filter_by(email=email).first()
+    if new_user is None:
+        return json_error("No user with that email", 404)
+    if _membership(new_user.id, group_id) is not None:
+        return json_error("User is already in this group", 409)
+
+    new_m = UserGroupMembership(
+        user_id=new_user.id,
+        group_id=group_id,
+        user_role=GroupRole.MEMBER,
+    )
+    db.session.add(new_m)
+    db.session.commit()
+    return jsonify(group=_group_detail_payload(group_id, actor)), 201
+
+
+@private_api.route("/groups/<int:group_id>/members/<int:user_id>", methods=["DELETE"])
+def api_group_remove_member(group_id, user_id):
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    actor = _membership(current_user.id, group_id)
+    target = _membership(user_id, group_id)
+    if actor is None:
+        return json_error("Not a member of this group", 403)
+    if target is None:
+        return json_error("Target is not a member of this group", 404)
+
+    is_self = user_id == current_user.id
+    if not is_self:
+        if actor.user_role == GroupRole.MEMBER:
+            return json_error("Only owners and admins can remove other members", 403)
+        if actor.user_role == GroupRole.ADMIN:
+            if target.user_role in (GroupRole.OWNER, GroupRole.ADMIN):
+                return json_error("Admins cannot remove owners or other admins", 403)
+    if is_self and target.user_role == GroupRole.OWNER:
+        others = (
+            UserGroupMembership.query.filter(
+                UserGroupMembership.group_id == group_id,
+                UserGroupMembership.user_id != current_user.id,
+            ).count()
+        )
+        if others > 0:
+            _promote_next_owner(group_id, current_user.id)
+
+    db.session.delete(target)
+    db.session.commit()
+    _maybe_prune_empty_group(group_id)
+    return jsonify(success=True)
