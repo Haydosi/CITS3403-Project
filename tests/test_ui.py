@@ -141,5 +141,27 @@ class TestProtectedRoutes(SeleniumTestCase):
         self.assertNotIn("login", self.driver.current_url)
 
 
+class TestSavingsTargets(SeleniumTestCase):
+
+    def test_targets_card_shows_seeded_targets(self):
+        self._login()
+        self.wait.until(EC.url_changes(f"{BASE}/login"))
+        self.driver.get(f"{BASE}/")
+        # The seeded test user has 4 savings targets; wait for them to render.
+        self.wait.until(
+            lambda d: len(d.find_elements(By.CSS_SELECTOR, "#targetsList .target-item")) == 4
+        )
+        items = self.driver.find_elements(By.CSS_SELECTOR, "#targetsList .target-item")
+        self.assertEqual(len(items), 4)
+
+    def test_new_target_button_opens_modal(self):
+        self._login()
+        self.wait.until(EC.url_changes(f"{BASE}/login"))
+        self.driver.get(f"{BASE}/")
+        self.driver.find_element(By.ID, "newTargetBtn").click()
+        self.wait.until(EC.visibility_of_element_located((By.ID, "newTargetModal")))
+        self.assertTrue(self.driver.find_element(By.ID, "newTargetModal").is_displayed())
+
+
 if __name__ == "__main__":
     unittest.main()
