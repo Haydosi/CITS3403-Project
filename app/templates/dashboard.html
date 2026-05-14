@@ -21,7 +21,7 @@
             <div class="page-subtitle">Welcome back, Scout. Here's your financial snapshot for April 2026.</div>
         </div>
         <!-- Top Bar: page title + primary CTA -->
-        <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#newTargetModal">
+        <button class="btn btn-accent" id="newTargetBtn">
             <i class="bi bi-plus-lg"></i> New Target
         </button>
     </div>
@@ -206,6 +206,7 @@
             </div>
             <div class="modal-body">
                 <form id="newTargetForm">
+                    <input type="hidden" id="targetId">
                     <div class="mb-3">
                         <label for="targetName" class="form-label">Target Name</label>
                         <input type="text" class="form-control" id="targetName" placeholder="e.g. Summer Trip" required>
@@ -237,6 +238,38 @@
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-accent" id="saveTargetBtn">
                     <i class="bi bi-check-lg"></i> Create Target
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     Contribute Modal — adds money toward an existing target.
+============================================================ -->
+<div class="modal fade" id="contributeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Contribution</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Adding to <strong id="contributeTargetName"></strong>.</p>
+                <form id="contributeForm">
+                    <input type="hidden" id="contributeTargetId">
+                    <div class="mb-3">
+                        <label for="contributeAmount" class="form-label">Amount ($)</label>
+                        <input type="number" class="form-control" id="contributeAmount"
+                            placeholder="100" min="0.01" step="0.01" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-accent" id="saveContributeBtn">
+                    <i class="bi bi-check-lg"></i> Add
                 </button>
             </div>
         </div>
