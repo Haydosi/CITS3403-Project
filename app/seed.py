@@ -7,6 +7,7 @@ from app import db
 from app.models import (
     User, Group, UserGroupMembership, GroupRole, Transaction,
     FamilyGroup, FamilyMember, FamilyTransaction, FamilyGoal,
+    SavingsTarget,
 )
 
 FIRST_NAMES = [
@@ -45,6 +46,14 @@ GOAL_OPTIONS = [
     ("Home Deposit", 15000, 50000),
     ("Christmas Fund", 500, 2000),
     ("Laptop Upgrade", 800, 2500),
+]
+
+# (name, emoji, target_amount, exact_current_for_test_user, days_until_deadline)
+TARGET_OPTIONS = [
+    ("Summer Trip", "✈️", 2000, 1400, 60),
+    ("New Laptop", "💻", 1500, 820, 30),
+    ("Emergency Fund", "🛡️", 5000, 3200, 240),
+    ("Course Fee", "🎓", 800, 150, 8),
 ]
 
 
@@ -99,8 +108,49 @@ def seed_db():
 
     db.session.flush()
 
-    # Transactions
+    # --- Pass 1: groups + memberships, build user→group lookup ---
+    # test_user excluded from pool so we can place them explicitly as group 1 owner
+    pool = list(users[1:])
+    random.shuffle(pool)
+
+    user_group_map = {}  # user_id -> group_id (first group only, used for tx tagging)
+    group_records = []   # (group, members) for the family pass below
+
+    for i, group_name in enumerate(GROUP_NAMES):
+        group = Group(group_name=group_name)
+        db.session.add(group)
+        db.session.flush()
+
+        if i == 0:
+            # test_user is always owner of the first group
+            size = random.randint(3, min(7, len(pool)))
+            members = [test_user] + pool[:size]
+            pool = pool[size:]
+        else:
+            size = random.randint(4, min(8, len(pool)))
+            members = pool[:size]
+            pool = pool[size:]
+
+        if len(pool) < 4:
+            pool = list(users[1:])
+            random.shuffle(pool)
+
+        for j, user in enumerate(members):
+            db.session.add(UserGroupMembership(
+                user_id=user.id,
+                group_id=group.id,
+                user_role=GroupRole.OWNER if j == 0 else GroupRole.MEMBER,
+            ))
+            if user.id not in user_group_map:
+                user_group_map[user.id] = group.id
+
+        group_records.append((group, members))
+
+    db.session.flush()
+
+    # --- Transactions (25 % chance of group_id for group members) ---
     for user in users:
+        gid = user_group_map.get(user.id)
         for _ in range(random.randint(20, 50)):
             tx_type = random.choices(
                 ["savings", "expense", "transfer"], weights=[50, 35, 15]
@@ -118,6 +168,7 @@ def seed_db():
             created = _random_dt(6)
             db.session.add(Transaction(
                 user_id=user.id,
+                group_id=gid if (gid and random.random() < 0.25) else None,
                 amount=amount,
                 description=desc,
                 transaction_type=tx_type,
@@ -127,36 +178,36 @@ def seed_db():
 
     db.session.flush()
 
-    # Groups → FamilyGroups
-    pool = list(users)
-    random.shuffle(pool)
+    # --- Savings targets for all users ---
+    # test_user keeps exact current_amount values so test assertions stay stable.
+    # Random users get a randomised current_amount within [0, target_amount].
+    for user in users:
+        is_test = user.id == test_user.id
+        days_back = 60 if is_test else random.randint(30, 90)
+        target_created = datetime.now(UTC) - timedelta(days=days_back)
 
-    for group_name in GROUP_NAMES:
-        group = Group(group_name=group_name)
-        db.session.add(group)
-        db.session.flush()
-
-        size = random.randint(4, min(8, len(pool)))
-        members = pool[:size]
-        pool = pool[size:]
-        if len(pool) < 4:
-            pool = list(users)
-            random.shuffle(pool)
-
-        owner = members[0]
-
-        for i, user in enumerate(members):
-            db.session.add(UserGroupMembership(
+        for name, emoji, target_amt, exact_current, days_left in TARGET_OPTIONS:
+            current_amt = exact_current if is_test else round(random.uniform(0, target_amt), 2)
+            db.session.add(SavingsTarget(
                 user_id=user.id,
-                group_id=group.id,
-                user_role=GroupRole.OWNER if i == 0 else GroupRole.MEMBER,
+                name=name,
+                emoji=emoji,
+                target_amount=target_amt,
+                current_amount=current_amt,
+                deadline=date.today() + timedelta(days=days_left),
+                created_at=target_created,
+                updated_at=target_created,
             ))
 
-        db.session.flush()
+    db.session.flush()
+
+    # --- Pass 2: FamilyGroups, FamilyMembers, FamilyTransactions, FamilyGoals ---
+    for group, members in group_records:
+        owner = members[0]
 
         fg = FamilyGroup(
             global_group_id=group.id,
-            group_name=group_name,
+            group_name=group.group_name,
             owner_id=owner.id,
             family_code=_family_code(),
             member_count=len(members),

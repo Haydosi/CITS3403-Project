@@ -185,9 +185,10 @@
     letter-spacing: 0.02em;
 }
 
-.forecast-badge.on-track { background: var(--accent-teal-dim);  color: var(--accent-teal); }
-.forecast-badge.at-risk  { background: var(--accent-amber-dim); color: var(--accent-amber); }
-.forecast-badge.behind   { background: var(--accent-rose-dim);  color: var(--accent-rose); }
+.forecast-badge.on-track  { background: var(--accent-teal-dim);  color: var(--accent-teal); }
+.forecast-badge.at-risk   { background: var(--accent-amber-dim); color: var(--accent-amber); }
+.forecast-badge.behind    { background: var(--accent-rose-dim);  color: var(--accent-rose); }
+.forecast-badge.completed { background: var(--accent-blue-dim); color: var(--accent-blue); }
 
 .target-progress-row {
     display: flex;
@@ -209,9 +210,10 @@
     transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.target-progress-fill.on-track { background: linear-gradient(90deg, var(--accent-teal),  #34d9ae); }
-.target-progress-fill.at-risk  { background: linear-gradient(90deg, var(--accent-amber), #fbbf24); }
-.target-progress-fill.behind   { background: linear-gradient(90deg, var(--accent-rose),  #fb7185); }
+.target-progress-fill.on-track  { background: linear-gradient(90deg, var(--accent-teal),  #34d9ae); }
+.target-progress-fill.at-risk   { background: linear-gradient(90deg, var(--accent-amber), #fbbf24); }
+.target-progress-fill.behind    { background: linear-gradient(90deg, var(--accent-rose),  #fb7185); }
+.target-progress-fill.completed { background: linear-gradient(90deg, var(--accent-blue), #60a5fa); }
 
 .target-amounts {
     font-size: 0.78rem;
@@ -339,4 +341,31 @@
 @media (max-width: 575.98px) {
     .stat-card .stat-value { font-size: 1.35rem; }
     .momentum-ring-wrapper { flex-direction: column; gap: 20px; }
+}
+
+/* Per-target action buttons (contribute / edit / delete) */
+.target-header-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.target-action {
+    background: var(--surface-3);
+    border: none;
+    color: var(--text-secondary);
+    width: 26px;
+    height: 26px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-smooth), color var(--transition-smooth);
+}
+
+.target-action:hover {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
 }
