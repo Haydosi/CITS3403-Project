@@ -6,7 +6,8 @@ let currentUserTotalSavings = 0;
 const topSaversCards = document.getElementById("topSaversCards");
 const familyLeaderboardBody = document.getElementById("familyLeaderboardBody");
 const familyCount = document.getElementById("familyCount");
-const lastUpdated = document.getElementById("lastUpdated");
+const currentTime = document.getElementById("currentTime");
+const currentTimeLabel = currentTime?.querySelector("span");
 const worldTabBtn = document.getElementById("worldTabBtn");
 const familyTabBtn = document.getElementById("familyTabBtn");
 const worldSection = document.getElementById("worldSection");
@@ -163,7 +164,24 @@ function render() {
     renderFamilySection();
     updateMySavingsDisplay();
     updateSectionView();
-    lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+function formatLocalTime(date = new Date()) {
+    return date.toLocaleTimeString("en-AU", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+    });
+}
+
+function updateCurrentTimeDisplay() {
+    if (!currentTimeLabel) return;
+    currentTimeLabel.textContent = formatLocalTime();
+}
+
+function startLiveClock() {
+    updateCurrentTimeDisplay();
+    setInterval(updateCurrentTimeDisplay, 1000);
 }
 
 function updateSectionView() {
@@ -199,7 +217,39 @@ familyTabBtn.addEventListener("click", () => {
     updateSectionView();
 });
 
-// Fetch data and render on page load
+// AJAX auto-refresh every 5 minutes; live clock in #currentTime
+const leaderboardAutoRefreshMs = 5 * 60 * 1000;
+let leaderboardAutoRefreshInFlight = false;
+let leaderboardAutoRefreshTimerId = null;
+
+async function refreshLeaderboardAndRender() {
+    if (leaderboardAutoRefreshInFlight) return;
+    leaderboardAutoRefreshInFlight = true;
+    try {
+        await fetchLeaderboardData();
+        render();
+    } catch (err) {
+        console.error("Leaderboard auto-refresh failed:", err);
+    } finally {
+        leaderboardAutoRefreshInFlight = false;
+    }
+}
+
+function startLeaderboardAutoRefresh() {
+    if (leaderboardAutoRefreshTimerId != null) return;
+
+    leaderboardAutoRefreshTimerId = setInterval(() => {
+        if (document.hidden) return;
+        refreshLeaderboardAndRender();
+    }, leaderboardAutoRefreshMs);
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) refreshLeaderboardAndRender();
+    });
+}
+
 fetchLeaderboardData().then(() => {
     render();
+    startLiveClock();
+    startLeaderboardAutoRefresh();
 });

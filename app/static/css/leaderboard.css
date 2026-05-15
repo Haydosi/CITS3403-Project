@@ -100,7 +100,21 @@
 }
 
 /* ============================================================
-   5. Responsive
+   5. Refresh status (top bar)
+============================================================ */
+.leaderboard-current-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.leaderboard-current-time i {
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+
+/* ============================================================
+   6. Responsive
 ============================================================ */
 @media (max-width: 991.98px) {
     .leaderboard-toolbar { grid-template-columns: 1fr; }
