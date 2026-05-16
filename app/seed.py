@@ -26,6 +26,21 @@ EXPENSE_DESCS = [
     "Dining out", "Petrol", "Gym membership", "Streaming service", "Phone bill",
 ]
 
+# Pairs an expense description with the matching sub-category so the
+# seeded Expense Breakdown chart shows realistic, varied slices.
+EXPENSE_CATEGORY_BY_DESC = {
+    "Groceries": "groceries",
+    "Rent": "housing",
+    "Electricity bill": "utilities",
+    "Internet": "utilities",
+    "Phone bill": "utilities",
+    "Coffee": "food",
+    "Dining out": "food",
+    "Petrol": "transport",
+    "Gym membership": "health",
+    "Streaming service": "entertainment",
+}
+
 SAVINGS_DESCS = [
     "Monthly savings deposit", "Bonus saved", "Birthday money",
     "Tax refund", "Freelance payment", "Side project income", "Dividend",
@@ -155,12 +170,14 @@ def seed_db():
             tx_type = random.choices(
                 ["savings", "expense", "transfer"], weights=[50, 35, 15]
             )[0]
+            category = None
             if tx_type == "savings":
                 amount = round(random.uniform(50, 2000), 2)
                 desc = random.choice(SAVINGS_DESCS)
             elif tx_type == "expense":
                 amount = round(random.uniform(-500, -10), 2)
                 desc = random.choice(EXPENSE_DESCS)
+                category = EXPENSE_CATEGORY_BY_DESC.get(desc, "other")
             else:
                 amount = round(random.uniform(100, 1000), 2)
                 desc = random.choice(TRANSFER_DESCS)
@@ -172,6 +189,7 @@ def seed_db():
                 amount=amount,
                 description=desc,
                 transaction_type=tx_type,
+                category=category,
                 created_at=created,
                 updated_at=created,
             ))

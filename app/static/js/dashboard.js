@@ -1,4 +1,5 @@
 // ─── Type config: maps transaction_type → display colour + label ─
+// Used by the Recent Transactions row pills (savings / expense / transfer).
 const TYPE_CONFIG = {
     savings:  { color: '#10b981', label: 'Savings' },
     expense:  { color: '#f43f5e', label: 'Expense' },
@@ -6,6 +7,24 @@ const TYPE_CONFIG = {
 };
 function typeConf(type) {
     return TYPE_CONFIG[type] || { color: '#64748b', label: type || 'Other' };
+}
+
+// ─── Category config: maps Transaction.category → colour + label ─
+// Used by the Expense Breakdown donut. Keep in sync with
+// ALLOWED_EXPENSE_CATEGORIES in app/api.py.
+const CATEGORY_CONFIG = {
+    food:          { color: '#f59e0b', label: 'Food' },
+    groceries:     { color: '#84cc16', label: 'Groceries' },
+    transport:     { color: '#3b82f6', label: 'Transport' },
+    housing:       { color: '#8b5cf6', label: 'Housing' },
+    utilities:     { color: '#06b6d4', label: 'Utilities' },
+    entertainment: { color: '#ec4899', label: 'Entertainment' },
+    health:        { color: '#ef4444', label: 'Health' },
+    shopping:      { color: '#f43f5e', label: 'Shopping' },
+    other:         { color: '#64748b', label: 'Other' },
+};
+function categoryConf(category) {
+    return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other;
 }
 
 // ─── Dashboard Summary ─────────────────────────────────────────
@@ -39,7 +58,8 @@ function renderExpenseChart(data) {
     const legendEl = document.getElementById('chartLegend');
     const savedVal = document.getElementById('chartSavedValue');
 
-    if (savedVal) savedVal.textContent = fmt(data.monthly_savings);
+    // Centre label tracks the chart purpose — total spent this month.
+    if (savedVal) savedVal.textContent = fmt(data.monthly_expenses);
 
     if (!breakdown || !breakdown.length) {
         legendEl.innerHTML = '<div class="text-muted small text-center py-2" style="grid-column:1/-1">No transactions this month.</div>';
@@ -56,9 +76,9 @@ function renderExpenseChart(data) {
         return;
     }
 
-    const labels = breakdown.map(e => typeConf(e.type).label);
+    const labels = breakdown.map(e => categoryConf(e.category).label);
     const amounts = breakdown.map(e => Math.abs(e.amount));
-    const colors = breakdown.map(e => typeConf(e.type).color);
+    const colors = breakdown.map(e => categoryConf(e.category).color);
 
     const chartData = {
         labels,
@@ -105,12 +125,18 @@ function renderExpenseChart(data) {
         });
     }
 
-    legendEl.innerHTML = '';
+    legendEl.replaceChildren();
     breakdown.forEach(e => {
-        const conf = typeConf(e.type);
+        const conf = categoryConf(e.category);
         const item = document.createElement('div');
         item.className = 'legend-item';
-        item.innerHTML = `<span class="legend-dot" style="background:${conf.color}"></span>${conf.label}<span class="legend-amount">${fmt(Math.abs(e.amount))}</span>`;
+        const dot = document.createElement('span');
+        dot.className = 'legend-dot';
+        dot.style.background = conf.color;
+        const amt = document.createElement('span');
+        amt.className = 'legend-amount';
+        amt.textContent = fmt(Math.abs(e.amount));
+        item.append(dot, document.createTextNode(conf.label), amt);
         legendEl.appendChild(item);
     });
 }
