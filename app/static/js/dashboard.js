@@ -29,14 +29,37 @@ function categoryConf(category) {
 
 // ─── Dashboard Summary ─────────────────────────────────────────
 let expenseChart = null;
+let selectedBreakdownMonth = '';
 
-async function loadDashboardSummary() {
-    const res = await fetch('/api/private/dashboard/summary');
+async function loadDashboardSummary(month) {
+    const url = month
+        ? `/api/private/dashboard/summary?month=${encodeURIComponent(month)}`
+        : '/api/private/dashboard/summary';
+    const res = await fetch(url);
     if (!res.ok) return;
     const data = await res.json();
-    renderStatCards(data);
+    if (!month) {
+        // First load owns the stat cards, recent transactions, and seeds the
+        // month dropdown. Subsequent month switches only refresh the chart.
+        renderStatCards(data);
+        renderTransactions(data.recent_transactions);
+        populateBreakdownMonths(data.available_months, data.breakdown_month);
+    }
     renderExpenseChart(data);
-    renderTransactions(data.recent_transactions);
+}
+
+function populateBreakdownMonths(months, selected) {
+    const sel = document.getElementById('breakdownMonth');
+    if (!sel || !Array.isArray(months)) return;
+    sel.replaceChildren();
+    months.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.value;
+        opt.textContent = m.label;
+        if (m.value === selected) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    selectedBreakdownMonth = selected || '';
 }
 
 function fmt(amount) {
@@ -58,8 +81,10 @@ function renderExpenseChart(data) {
     const legendEl = document.getElementById('chartLegend');
     const savedVal = document.getElementById('chartSavedValue');
 
-    // Centre label tracks the chart purpose — total spent this month.
-    if (savedVal) savedVal.textContent = fmt(data.monthly_expenses);
+    // Centre label reflects the selected month, not the current one — when the
+    // user picks April from the dropdown the donut and total must agree.
+    const breakdownTotal = data.breakdown_total != null ? data.breakdown_total : data.monthly_expenses;
+    if (savedVal) savedVal.textContent = fmt(breakdownTotal);
 
     if (!breakdown || !breakdown.length) {
         legendEl.innerHTML = '<div class="text-muted small text-center py-2" style="grid-column:1/-1">No transactions this month.</div>';
@@ -197,6 +222,14 @@ function renderTransactions(transactions) {
 }
 
 loadDashboardSummary();
+
+const breakdownMonthSelect = document.getElementById('breakdownMonth');
+if (breakdownMonthSelect) {
+    breakdownMonthSelect.addEventListener('change', (e) => {
+        selectedBreakdownMonth = e.target.value;
+        loadDashboardSummary(selectedBreakdownMonth);
+    });
+}
 
 // ─── Sidebar Toggle (mobile) ────────────────────────────────
 const sidebar = document.getElementById('sidebar');

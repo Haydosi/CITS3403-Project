@@ -1005,6 +1005,21 @@ def api_group_remove_member(group_id, user_id):
     return jsonify(success=True)
 
 
+def _parse_month(raw, fallback):
+    # Parse "YYYY-MM" → first-of-month datetime. Returns fallback on bad input.
+    if not raw:
+        return fallback
+    try:
+        year, month = raw.split("-", 1)
+        return datetime(int(year), int(month), 1)
+    except (TypeError, ValueError):
+        return fallback
+
+
+def _next_month_start(dt):
+    return datetime(dt.year + 1, 1, 1) if dt.month == 12 else datetime(dt.year, dt.month + 1, 1)
+
+
 @private_api.route("/dashboard/summary", methods=["GET"])
 def api_dashboard_summary():
     if not current_user.is_authenticated:
@@ -1057,6 +1072,12 @@ def api_dashboard_summary():
         .scalar() or 0
     )
 
+    # Breakdown is scoped to a user-selectable month (?month=YYYY-MM); the
+    # other monthly_* stats stay on the current calendar month so the stat
+    # cards keep their "this month" meaning.
+    breakdown_month_start = _parse_month(request.args.get("month"), month_start)
+    breakdown_month_end = _next_month_start(breakdown_month_start)
+
     # Expense Breakdown chart — expenses only, broken down by category (Issue 1).
     breakdown_rows = (
         db.session.query(
@@ -1065,7 +1086,8 @@ def api_dashboard_summary():
         )
         .filter(
             *personal_only,
-            Transaction.created_at >= month_start,
+            Transaction.created_at >= breakdown_month_start,
+            Transaction.created_at < breakdown_month_end,
             Transaction.transaction_type == "expense",
         )
         .group_by(Transaction.category)
@@ -1074,6 +1096,29 @@ def api_dashboard_summary():
     expense_breakdown = [
         {"category": category or "other", "amount": abs(float(total or 0))}
         for category, total in breakdown_rows
+    ]
+    breakdown_total = sum(item["amount"] for item in expense_breakdown)
+
+    # Month dropdown options — every month with personal expenses, newest
+    # first, plus the current month so it is always selectable.
+    month_rows = (
+        db.session.query(
+            func.strftime("%Y-%m", Transaction.created_at).label("ym")
+        )
+        .filter(
+            *personal_only,
+            Transaction.transaction_type == "expense",
+        )
+        .group_by("ym")
+        .order_by(db.desc("ym"))
+        .all()
+    )
+    month_values = {row.ym for row in month_rows if row.ym}
+    month_values.add(month_start.strftime("%Y-%m"))
+    month_values.add(breakdown_month_start.strftime("%Y-%m"))
+    available_months = [
+        {"value": ym, "label": datetime.strptime(ym, "%Y-%m").strftime("%B %Y")}
+        for ym in sorted(month_values, reverse=True)
     ]
 
     rows = (
@@ -1093,5 +1138,9 @@ def api_dashboard_summary():
         monthly_savings=monthly_savings,
         current_month=datetime.now(UTC).strftime("%B %Y"),
         expense_breakdown=expense_breakdown,
+        breakdown_month=breakdown_month_start.strftime("%Y-%m"),
+        breakdown_month_label=breakdown_month_start.strftime("%B %Y"),
+        breakdown_total=breakdown_total,
+        available_months=available_months,
         recent_transactions=recent_transactions,
     )
