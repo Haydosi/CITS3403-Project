@@ -243,6 +243,216 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 403)
 
+    # ───────────────────────── bugfix/transactions regression tests ──
+
+    def _create_group_with_owner(self, name="Test Group"):
+        # Returns (group_id) after creating the group as the current user.
+        return self.client.post(
+            "/api/private/groups", json={"group_name": name}
+        ).get_json()["group"]["id"]
+
+    def test_category_rejected_for_non_expense(self):
+        # Issue 2 regression — category is only valid on expense rows.
+        self._register_user()
+        self._login_user()
+        r = self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": 100,
+                "transaction_type": "savings",
+                "category": "food",
+            },
+        )
+        self.assertEqual(r.status_code, 400, r.get_json())
+        self.assertIn("category", r.get_json()["error"].lower())
+
+    def test_invalid_category_rejected(self):
+        # Issue 2 regression — only ALLOWED_EXPENSE_CATEGORIES are accepted.
+        self._register_user()
+        self._login_user()
+        r = self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -20,
+                "transaction_type": "expense",
+                "category": "yachts",
+            },
+        )
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("Invalid category", r.get_json()["error"])
+
+    def test_category_cleared_when_type_patched_away_from_expense(self):
+        # Issue 2 regression — switching off "expense" must drop the category.
+        self._register_user()
+        self._login_user()
+        tid = self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -30,
+                "transaction_type": "expense",
+                "category": "food",
+            },
+        ).get_json()["transaction"]["id"]
+        patched = self.client.patch(
+            f"/api/private/transactions/{tid}",
+            json={"transaction_type": "savings"},
+        )
+        self.assertEqual(patched.status_code, 200)
+        self.assertIsNone(patched.get_json()["transaction"]["category"])
+
+    def test_patch_invalid_category_does_not_mutate_row(self):
+        # Issue D regression — validation failures must not leave the row in a
+        # half-updated state. PATCH that flips type AND sets a bad category
+        # should reject the whole request without mutating type.
+        self._register_user()
+        self._login_user()
+        tid = self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -30,
+                "transaction_type": "expense",
+                "category": "food",
+            },
+        ).get_json()["transaction"]["id"]
+        bad = self.client.patch(
+            f"/api/private/transactions/{tid}",
+            json={"transaction_type": "savings", "category": "food"},
+        )
+        # category is invalid on savings rows → 400, no mutation.
+        self.assertEqual(bad.status_code, 400)
+        listed = self.client.get("/api/private/transactions").get_json()
+        row = listed["transactions"][0]
+        self.assertEqual(row["transaction_type"], "expense")
+        self.assertEqual(row["category"], "food")
+
+    def test_personal_transactions_list_excludes_group_rows(self):
+        # Issue 6 regression — group-tagged transactions must not show up in
+        # the personal list or personal total_balance.
+        self._register_user()
+        self._login_user()
+        gid = self._create_group_with_owner()
+        # Personal row + group-tagged row.
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 100, "transaction_type": "savings"},
+        )
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 500, "transaction_type": "savings", "group_id": gid},
+        )
+        body = self.client.get("/api/private/transactions").get_json()
+        self.assertEqual(len(body["transactions"]), 1)
+        self.assertAlmostEqual(body["total_balance"], 100.0, places=2)
+
+    def test_dashboard_summary_excludes_group_rows(self):
+        # Issue 6 regression — dashboard summary is personal-only.
+        self._register_user()
+        self._login_user()
+        gid = self._create_group_with_owner()
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 200, "transaction_type": "savings"},
+        )
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 999, "transaction_type": "savings", "group_id": gid},
+        )
+        body = self.client.get("/api/private/dashboard/summary").get_json()
+        self.assertAlmostEqual(body["total_balance"], 200.0, places=2)
+        self.assertAlmostEqual(body["monthly_income"], 200.0, places=2)
+
+    def test_dashboard_monthly_savings_only_counts_savings_type(self):
+        # Issue 5 regression — monthly_savings is sum of savings-type rows,
+        # not net cash flow (income − expense).
+        self._register_user()
+        self._login_user()
+        # $1,000 income but logged as a transfer, and $300 in expenses. If the
+        # old calculation came back, monthly_savings would be 700. With the
+        # fix it should be 0 because there is no savings-type row.
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 1000, "transaction_type": "transfer"},
+        )
+        self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -300,
+                "transaction_type": "expense",
+                "category": "food",
+            },
+        )
+        body = self.client.get("/api/private/dashboard/summary").get_json()
+        self.assertAlmostEqual(body["monthly_savings"], 0.0, places=2)
+        # Adding an explicit savings row should be the only contributor.
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 250, "transaction_type": "savings"},
+        )
+        body2 = self.client.get("/api/private/dashboard/summary").get_json()
+        self.assertAlmostEqual(body2["monthly_savings"], 250.0, places=2)
+
+    def test_dashboard_expense_breakdown_groups_by_category(self):
+        # Issue 1 regression — breakdown is keyed by category, expenses only.
+        self._register_user()
+        self._login_user()
+        self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -40,
+                "transaction_type": "expense",
+                "category": "food",
+            },
+        )
+        self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -60,
+                "transaction_type": "expense",
+                "category": "food",
+            },
+        )
+        self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": -25,
+                "transaction_type": "expense",
+                "category": "transport",
+            },
+        )
+        # Non-expense rows must not appear in the breakdown.
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 500, "transaction_type": "savings"},
+        )
+        body = self.client.get("/api/private/dashboard/summary").get_json()
+        breakdown = {row["category"]: row["amount"] for row in body["expense_breakdown"]}
+        self.assertIn("food", breakdown)
+        self.assertIn("transport", breakdown)
+        self.assertNotIn("savings", breakdown)
+        self.assertAlmostEqual(breakdown["food"], 100.0, places=2)
+        self.assertAlmostEqual(breakdown["transport"], 25.0, places=2)
+
+    def test_global_leaderboard_excludes_group_rows(self):
+        # Issue 6 regression — global leaderboard is personal-only savings.
+        self._register_user()
+        self._login_user()
+        gid = self._create_group_with_owner()
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 100, "transaction_type": "savings"},
+        )
+        self.client.post(
+            "/api/private/transactions",
+            json={"amount": 9999, "transaction_type": "savings", "group_id": gid},
+        )
+        body = self.client.get("/api/private/leaderboard").get_json()
+        # Owner is the only user with rows; total should ignore the group row.
+        me = next(
+            row for row in body["leaderboard"]
+            if row["email"] == "user@example.com"
+        )
+        self.assertAlmostEqual(float(me["total_saved"]), 100.0, places=2)
+
 
 if __name__ == "__main__":
     unittest.main()
