@@ -190,7 +190,8 @@ def api_leaderboard():
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
     
-    # Query to calculate total savings per user
+    # Global leaderboard ranks users on personal-only savings — group-tagged
+    # rows are scored in the family leaderboard instead (see Issue 6).
     leaderboard_query = db.session.query(
         User.id,
         User.username,
@@ -198,7 +199,10 @@ def api_leaderboard():
         User.first_name,
         User.last_name,
         func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
-    ).outerjoin(Transaction, User.id == Transaction.user_id).group_by(User.id).order_by(
+    ).outerjoin(
+        Transaction,
+        (User.id == Transaction.user_id) & (Transaction.group_id.is_(None)),
+    ).group_by(User.id).order_by(
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     ).limit(10)
     
@@ -552,6 +556,34 @@ def _family_leaderboard_payload(leaderboard_query):
 
 ALLOWED_TRANSACTION_TYPES = frozenset({"savings", "expense", "transfer"})
 
+# Sub-categories valid only for expense-type transactions. Stored on
+# Transaction.category and surfaced in the Expense Breakdown chart.
+ALLOWED_EXPENSE_CATEGORIES = frozenset({
+    "food",
+    "groceries",
+    "transport",
+    "housing",
+    "utilities",
+    "entertainment",
+    "health",
+    "shopping",
+    "other",
+})
+
+
+def _normalise_category(raw, tx_type):
+    # Empty/None for non-expense rows. Returns (value, error_message).
+    if raw in (None, ""):
+        return None, None
+    value = str(raw).strip().lower()
+    if not value:
+        return None, None
+    if tx_type != "expense":
+        return None, "category is only valid for expense transactions"
+    if value not in ALLOWED_EXPENSE_CATEGORIES:
+        return None, "Invalid category"
+    return value, None
+
 
 def _user_in_group(user_id, group_id):
     # True if the user belongs to the given group.
@@ -610,15 +642,23 @@ def api_transactions():
         return json_error("Authentication required", 401)
 
     if request.method == "GET":
+        # Personal queries exclude group-tagged rows — those only count in the
+        # group/family context (see Issue 6).
         total_balance = (
             db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
-            .filter(Transaction.user_id == current_user.id)
+            .filter(
+                Transaction.user_id == current_user.id,
+                Transaction.group_id.is_(None),
+            )
             .scalar()
         )
         rows = (
             db.session.query(Transaction, Group.group_name)
             .outerjoin(Group, Transaction.group_id == Group.id)
-            .filter(Transaction.user_id == current_user.id)
+            .filter(
+                Transaction.user_id == current_user.id,
+                Transaction.group_id.is_(None),
+            )
             .order_by(Transaction.created_at.desc())
             .limit(200)
             .all()
@@ -650,6 +690,10 @@ def api_transactions():
     if desc is not None:
         desc = str(desc).strip()[:255] or None
 
+    category, cat_err = _normalise_category(payload.get("category"), tx_type)
+    if cat_err:
+        return json_error(cat_err, 400)
+
     group_id = _parse_optional_group_id(payload.get("group_id"))
     if group_id == "invalid":
         return json_error("Invalid group_id", 400)
@@ -662,6 +706,7 @@ def api_transactions():
         amount=amount,
         description=desc,
         transaction_type=tx_type,
+        category=category,
     )
     db.session.add(tx)
     db.session.commit()
@@ -714,6 +759,17 @@ def api_transaction_detail(transaction_id):
         if tt not in ALLOWED_TRANSACTION_TYPES:
             return json_error("Invalid transaction_type", 400)
         tx.transaction_type = tt
+        # Category only applies to expense rows — clear it if the type changed.
+        if tt != "expense":
+            tx.category = None
+
+    if "category" in payload:
+        category, cat_err = _normalise_category(
+            payload.get("category"), tx.transaction_type
+        )
+        if cat_err:
+            return json_error(cat_err, 400)
+        tx.category = category
 
     if "group_id" in payload:
         raw = payload.get("group_id")
@@ -934,16 +990,22 @@ def api_dashboard_summary():
     now = datetime.now(UTC).replace(tzinfo=None)
     month_start = datetime(now.year, now.month, 1)
 
+    # Personal dashboard excludes group-tagged transactions (Issue 6).
+    personal_only = (
+        Transaction.user_id == current_user.id,
+        Transaction.group_id.is_(None),
+    )
+
     total_balance = float(
         db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
-        .filter(Transaction.user_id == current_user.id)
+        .filter(*personal_only)
         .scalar() or 0
     )
 
     monthly_income = float(
         db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
         .filter(
-            Transaction.user_id == current_user.id,
+            *personal_only,
             Transaction.created_at >= month_start,
             Transaction.amount > 0,
         )
@@ -953,7 +1015,7 @@ def api_dashboard_summary():
     monthly_expenses_raw = float(
         db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
         .filter(
-            Transaction.user_id == current_user.id,
+            *personal_only,
             Transaction.created_at >= month_start,
             Transaction.amount < 0,
         )
@@ -961,27 +1023,40 @@ def api_dashboard_summary():
     )
     monthly_expenses = abs(monthly_expenses_raw)
 
+    # Monthly savings = sum of explicit savings-type transactions (Issue 5).
+    monthly_savings = float(
+        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(
+            *personal_only,
+            Transaction.created_at >= month_start,
+            Transaction.transaction_type == "savings",
+        )
+        .scalar() or 0
+    )
+
+    # Expense Breakdown chart — expenses only, broken down by category (Issue 1).
     breakdown_rows = (
         db.session.query(
-            Transaction.transaction_type,
+            Transaction.category,
             func.sum(Transaction.amount).label("total"),
         )
         .filter(
-            Transaction.user_id == current_user.id,
+            *personal_only,
             Transaction.created_at >= month_start,
+            Transaction.transaction_type == "expense",
         )
-        .group_by(Transaction.transaction_type)
+        .group_by(Transaction.category)
         .all()
     )
     expense_breakdown = [
-        {"type": tx_type, "amount": float(total or 0)}
-        for tx_type, total in breakdown_rows
+        {"category": category or "other", "amount": abs(float(total or 0))}
+        for category, total in breakdown_rows
     ]
 
     rows = (
         db.session.query(Transaction, Group.group_name)
         .outerjoin(Group, Transaction.group_id == Group.id)
-        .filter(Transaction.user_id == current_user.id)
+        .filter(*personal_only)
         .order_by(Transaction.created_at.desc())
         .limit(7)
         .all()
@@ -992,7 +1067,7 @@ def api_dashboard_summary():
         total_balance=total_balance,
         monthly_income=monthly_income,
         monthly_expenses=monthly_expenses,
-        monthly_savings=monthly_income - monthly_expenses,
+        monthly_savings=monthly_savings,
         current_month=datetime.now(UTC).strftime("%B %Y"),
         expense_breakdown=expense_breakdown,
         recent_transactions=recent_transactions,

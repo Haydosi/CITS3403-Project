@@ -11,10 +11,20 @@ const txnModalLabel = document.getElementById("txnModalLabel");
 const txnEditId = document.getElementById("txnEditId");
 const txnAmount = document.getElementById("txnAmount");
 const txnType = document.getElementById("txnType");
+const txnCategoryWrap = document.getElementById("txnCategoryWrap");
+const txnCategory = document.getElementById("txnCategory");
 const txnDescription = document.getElementById("txnDescription");
 const txnGroup = document.getElementById("txnGroup");
 const txnSaveBtn = document.getElementById("txnSaveBtn");
 const openAddTxn = document.getElementById("openAddTxn");
+
+function updateCategoryVisibility() {
+    const isExpense = txnType.value === "expense";
+    txnCategoryWrap.classList.toggle("d-none", !isExpense);
+    if (!isExpense) txnCategory.value = "";
+}
+
+txnType.addEventListener("change", updateCategoryVisibility);
 
 let txnModalInstance = null;
 
@@ -63,8 +73,10 @@ function resetModalForAdd() {
     txnModalLabel.textContent = "Add transaction";
     txnAmount.value = "";
     txnType.value = "savings";
+    txnCategory.value = "";
     txnDescription.value = "";
     txnGroup.value = "";
+    updateCategoryVisibility();
     clearTxnError();
 }
 
@@ -73,8 +85,10 @@ function openModalForEdit(row) {
     txnModalLabel.textContent = "Edit transaction";
     txnAmount.value = row.amount;
     txnType.value = row.transaction_type || "savings";
+    txnCategory.value = row.category || "";
     txnDescription.value = row.description || "";
     txnGroup.value = row.group_id ? String(row.group_id) : "";
+    updateCategoryVisibility();
     clearTxnError();
     txnModalInstance.show();
 }
@@ -171,6 +185,7 @@ txnSaveBtn.addEventListener("click", async () => {
         amount: parseFloat(amountVal),
         transaction_type: txnType.value,
         description: txnDescription.value.trim() || null,
+        category: txnType.value === "expense" ? (txnCategory.value || null) : null,
     };
     const gid = txnGroup.value.trim();
     if (gid) payload.group_id = parseInt(gid, 10);
