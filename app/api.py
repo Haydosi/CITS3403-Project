@@ -738,50 +738,73 @@ def api_transaction_detail(transaction_id):
     if error:
         return error
 
+    # Validate all fields before mutating the session — a failure halfway through
+    # would otherwise leave the row partially updated for the rest of the request.
+    UNSET = object()
+    new_amount = UNSET
+    new_description = UNSET
+    new_type = UNSET
+    new_category = UNSET
+    new_group_id = UNSET
+
     if "amount" in payload:
         if payload["amount"] is None:
             return json_error("amount cannot be null", 400)
         try:
-            tx.amount = float(payload["amount"])
+            new_amount = float(payload["amount"])
         except (TypeError, ValueError):
             return json_error("Invalid amount", 400)
 
     if "description" in payload:
         d = payload.get("description")
         if d is None:
-            tx.description = None
+            new_description = None
         else:
             d = str(d).strip()[:255]
-            tx.description = d or None
+            new_description = d or None
 
     if "transaction_type" in payload:
         tt = (payload.get("transaction_type") or "").strip().lower()
         if tt not in ALLOWED_TRANSACTION_TYPES:
             return json_error("Invalid transaction_type", 400)
-        tx.transaction_type = tt
-        # Category only applies to expense rows — clear it if the type changed.
-        if tt != "expense":
-            tx.category = None
+        new_type = tt
 
+    # Category is validated against the post-PATCH type so a request that
+    # changes type AND category in one go is checked against the new type.
+    effective_type = new_type if new_type is not UNSET else tx.transaction_type
     if "category" in payload:
         category, cat_err = _normalise_category(
-            payload.get("category"), tx.transaction_type
+            payload.get("category"), effective_type
         )
         if cat_err:
             return json_error(cat_err, 400)
-        tx.category = category
+        new_category = category
 
     if "group_id" in payload:
         raw = payload.get("group_id")
         if raw in (None, "", 0, "0"):
-            tx.group_id = None
+            new_group_id = None
         else:
             group_id = _parse_optional_group_id(raw)
             if group_id == "invalid":
                 return json_error("Invalid group_id", 400)
             if not _user_in_group(current_user.id, group_id):
                 return json_error("You are not a member of that group", 403)
-            tx.group_id = group_id
+            new_group_id = group_id
+
+    if new_amount is not UNSET:
+        tx.amount = new_amount
+    if new_description is not UNSET:
+        tx.description = new_description
+    if new_type is not UNSET:
+        tx.transaction_type = new_type
+        # Category only applies to expense rows — clear it if the type changed.
+        if new_type != "expense" and new_category is UNSET:
+            tx.category = None
+    if new_category is not UNSET:
+        tx.category = new_category
+    if new_group_id is not UNSET:
+        tx.group_id = new_group_id
 
     db.session.commit()
     gname = None

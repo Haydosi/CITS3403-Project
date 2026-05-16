@@ -12,7 +12,7 @@
     <section class="top-bar anim-in">
         <div>
             <h2 class="page-title">Transactions</h2>
-            <p class="page-subtitle">Log savings, expenses, and transfers. Optional group tags when you belong to a group.</p>
+            <p class="page-subtitle">Log your personal savings, expenses, and transfers.</p>
         </div>
         <button type="button" class="btn btn-accent" id="openAddTxn">
             <i class="bi bi-plus-lg"></i> Add transaction
@@ -41,7 +41,6 @@
                         <th>Date</th>
                         <th>Type</th>
                         <th>Description</th>
-                        <th>Group</th>
                         <th class="text-end">Amount</th>
                         <th class="text-end txn-actions-col">Actions</th>
                     </tr>
@@ -89,15 +88,9 @@
                         <option value="other">Other</option>
                     </select>
                 </div>
-                <div class="mb-3">
+                <div class="mb-0">
                     <label class="form-label" for="txnDescription">Description (optional)</label>
                     <input type="text" class="form-control" id="txnDescription" maxlength="255" placeholder="What was this for?">
-                </div>
-                <div class="mb-0">
-                    <label class="form-label" for="txnGroup">Group (optional)</label>
-                    <select class="form-select" id="txnGroup">
-                        <option value="">Personal (no group)</option>
-                    </select>
                 </div>
             </div>
             <div class="modal-footer border-secondary">

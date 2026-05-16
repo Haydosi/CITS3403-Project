@@ -18,6 +18,12 @@ depends_on = None
 def upgrade():
     with op.batch_alter_table('transactions', schema=None) as batch_op:
         batch_op.add_column(sa.Column('category', sa.String(length=50), nullable=True))
+    # Backfill: existing expense rows are uncategorised — bucket them under
+    # "other" so the dashboard breakdown shows a sensible value instead of NULL.
+    op.execute(
+        "UPDATE transactions SET category='other' "
+        "WHERE transaction_type='expense' AND category IS NULL"
+    )
 
 
 def downgrade():
