@@ -283,6 +283,30 @@ def api_group_activity(group_id):
     return jsonify(group_id=group_id, days=30, series=_group_activity_series(group_id, days=30))
 
 
+@private_api.route("/groups/<int:group_id>/transactions", methods=["GET"])
+def api_group_transactions(group_id):
+    # Recent transactions tagged to this group. Members only.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    if _membership(current_user.id, group_id) is None:
+        return json_error("Not a member of this group", 403)
+
+    rows = (
+        db.session.query(Transaction, User)
+        .join(User, User.id == Transaction.user_id)
+        .filter(Transaction.group_id == group_id)
+        .order_by(Transaction.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    transactions = []
+    for tx, u in rows:
+        data = _transaction_to_json(tx)
+        data["user"] = _user_public_summary(u)
+        transactions.append(data)
+    return jsonify(transactions=transactions)
+
+
 @private_api.route("/targets", methods=["GET"])
 def api_targets_list():
     # List the current user's savings targets, newest first.

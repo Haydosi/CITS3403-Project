@@ -518,6 +518,45 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(series[0]["saved"], 0.0)
         self.assertEqual(series[0]["spent"], 0.0)
 
+    def test_group_transactions_requires_membership(self):
+        self._register_user(email="o@o.com")
+        self._login_user(email="o@o.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Closed"}
+        ).get_json()["group"]["id"]
+
+        self._register_user(email="outsider@o.com")
+        self._login_user(email="outsider@o.com")
+        res = self.client.get(f"/api/private/groups/{gid}/transactions")
+        self.assertEqual(res.status_code, 403)
+
+    def test_group_transactions_returns_recent_rows_with_user(self):
+        self._register_user(email="m@m.com")
+        self._login_user(email="m@m.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Tx"}
+        ).get_json()["group"]["id"]
+        self.client.post("/api/private/transactions", json={
+            "amount": 12.5, "transaction_type": "expense",
+            "category": "food", "description": "Lunch", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 200, "transaction_type": "savings",
+            "description": "Salary", "group_id": gid,
+        })
+
+        res = self.client.get(f"/api/private/groups/{gid}/transactions")
+        self.assertEqual(res.status_code, 200)
+        body = res.get_json()
+        self.assertIn("transactions", body)
+        self.assertEqual(len(body["transactions"]), 2)
+        # Newest first.
+        first = body["transactions"][0]
+        self.assertEqual(first["transaction_type"], "savings")
+        self.assertEqual(first["description"], "Salary")
+        self.assertIn("user", first)
+        self.assertEqual(first["user"]["email"], "m@m.com")
+
 
 if __name__ == "__main__":
     unittest.main()
