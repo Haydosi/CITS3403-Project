@@ -40,6 +40,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Type</th>
+                        <th>Category</th>
                         <th>Description</th>
                         <th class="text-end">Amount</th>
                         <th class="text-end txn-actions-col">Actions</th>
@@ -75,8 +76,8 @@
                 </div>
                 <div class="mb-3 d-none" id="txnCategoryWrap">
                     <label class="form-label" for="txnCategory">Category</label>
-                    <select class="form-select" id="txnCategory">
-                        <option value="">Uncategorised</option>
+                    <select class="form-select" id="txnCategory" required>
+                        <option value="" disabled selected hidden>Choose a category</option>
                         <option value="food">Food</option>
                         <option value="groceries">Groceries</option>
                         <option value="transport">Transport</option>

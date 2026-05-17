@@ -68,3 +68,18 @@
     border-color: var(--accent-teal);
     box-shadow: 0 0 0 0.2rem var(--accent-teal-dim);
 }
+
+.txn-category-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+}
+
+.txn-category-missing {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px dashed var(--border-subtle);
+}
