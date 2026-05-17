@@ -13,9 +13,17 @@ const familyTabBtn = document.getElementById("familyTabBtn");
 const worldSection = document.getElementById("worldSection");
 const familySection = document.getElementById("familySection");
 const mySavingsAmount = document.getElementById("mySavingsAmount");
+const familyGroupSelect = document.getElementById("familyGroupSelect");
+const familyGroupToolbar = document.getElementById("familyGroupToolbar");
+const familyLeaderboardEmpty = document.getElementById("familyLeaderboardEmpty");
+const familyLeaderboardTableWrap = document.getElementById("familyLeaderboardTableWrap");
+
+const LEADERBOARD_GROUP_STORAGE_KEY = "leaderboardSelectedGroupId";
 
 // Tracks which section is currently visible in the UI.
 let activeSection = "world";
+let leaderboardGroups = [];
+let selectedFamilyGroupId = null;
 
 function currency(amount) {
     // Format amounts as AUD-style currency text (e.g. 5,120).
@@ -66,13 +74,14 @@ async function fetchLeaderboardData() {
             worldLeaderboard = [];
         }
         
-        const groupsRes = await fetch("/api/private/me/groups");
-        let familyGroupId = null;
+        const groupsRes = await fetch("/api/private/me/groups?leaderboard=1");
+        leaderboardGroups = [];
         if (groupsRes.ok) {
             const gdata = await groupsRes.json();
-            const gl = gdata.groups || [];
-            if (gl.length) familyGroupId = gl[0].id;
+            leaderboardGroups = gdata.groups || [];
         }
+        populateFamilyGroupSelect();
+        const familyGroupId = resolveSelectedFamilyGroupId();
         if (familyGroupId != null) {
             const familyResponse = await fetch(
                 `/api/private/leaderboard/family/${familyGroupId}`
@@ -96,6 +105,63 @@ async function fetchLeaderboardData() {
         if (saved > 0) {
             currentUserTotalSavings = saved;
         }
+    }
+}
+
+function readStoredFamilyGroupId() {
+    const raw = localStorage.getItem(LEADERBOARD_GROUP_STORAGE_KEY);
+    if (!raw) return null;
+    const id = parseInt(raw, 10);
+    return Number.isFinite(id) ? id : null;
+}
+
+function storeSelectedFamilyGroupId(groupId) {
+    localStorage.setItem(LEADERBOARD_GROUP_STORAGE_KEY, String(groupId));
+}
+
+function resolveSelectedFamilyGroupId() {
+    if (!leaderboardGroups.length) {
+        selectedFamilyGroupId = null;
+        return null;
+    }
+    const stored = readStoredFamilyGroupId();
+    const validStored = leaderboardGroups.some((g) => g.id === stored);
+    if (validStored) {
+        selectedFamilyGroupId = stored;
+    } else {
+        selectedFamilyGroupId = leaderboardGroups[0].id;
+        storeSelectedFamilyGroupId(selectedFamilyGroupId);
+    }
+    if (familyGroupSelect) {
+        familyGroupSelect.value = String(selectedFamilyGroupId);
+    }
+    return selectedFamilyGroupId;
+}
+
+function populateFamilyGroupSelect() {
+    if (!familyGroupSelect) return;
+    familyGroupSelect.innerHTML = "";
+    leaderboardGroups.forEach((g) => {
+        const opt = document.createElement("option");
+        opt.value = String(g.id);
+        opt.textContent = g.group_name || `Group #${g.id}`;
+        familyGroupSelect.appendChild(opt);
+    });
+}
+
+function updateFamilyLeaderboardVisibility() {
+    const hasGroups = leaderboardGroups.length > 0;
+    if (familyGroupToolbar) {
+        familyGroupToolbar.classList.toggle("d-none", !hasGroups);
+    }
+    if (familyLeaderboardEmpty) {
+        familyLeaderboardEmpty.classList.toggle("d-none", hasGroups);
+    }
+    if (familyLeaderboardTableWrap) {
+        familyLeaderboardTableWrap.classList.toggle("d-none", !hasGroups);
+    }
+    if (familyCount) {
+        familyCount.classList.toggle("d-none", !hasGroups);
     }
 }
 
@@ -137,6 +203,7 @@ function renderTopSavers() {
 
 function renderFamilySection() {
     // Build the family-only ranking table showing percentages.
+    updateFamilyLeaderboardVisibility();
     const familyTotal = familyLeaderboard.reduce((sum, player) => sum + player.total_saved, 0);
     familyCount.textContent = `${familyLeaderboard.length} members`;
     familyLeaderboardBody.innerHTML = "";
@@ -216,6 +283,16 @@ familyTabBtn.addEventListener("click", () => {
     activeSection = "family";
     updateSectionView();
 });
+
+if (familyGroupSelect) {
+    familyGroupSelect.addEventListener("change", async () => {
+        const nextId = parseInt(familyGroupSelect.value, 10);
+        if (!Number.isFinite(nextId) || nextId === selectedFamilyGroupId) return;
+        selectedFamilyGroupId = nextId;
+        storeSelectedFamilyGroupId(nextId);
+        await refreshLeaderboardAndRender();
+    });
+}
 
 // AJAX auto-refresh every 5 minutes; live clock in #currentTime
 const leaderboardAutoRefreshMs = 5 * 60 * 1000;

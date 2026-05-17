@@ -53,6 +53,27 @@
 
 .hidden-section { display: none; }
 
+.leaderboard-group-toolbar {
+    margin-bottom: 16px;
+    max-width: 320px;
+}
+
+.leaderboard-group-toolbar .form-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.leaderboard-group-toolbar .form-select {
+    background: var(--surface-2);
+    border-color: var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.leaderboard-family-empty {
+    margin: 0 0 12px;
+}
+
 /* ============================================================
    3. Podium Cards
 ============================================================ */

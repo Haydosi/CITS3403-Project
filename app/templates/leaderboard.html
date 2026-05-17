@@ -13,7 +13,7 @@
     <section class="top-bar anim-in">
         <div>
             <h2 class="page-title">Savings Leaderboard</h2>
-            <p class="page-subtitle">Sections: choose World or Family.</p>
+            <p class="page-subtitle">World rankings or family competition by group.</p>
         </div>
         <div class="dash-card-badge leaderboard-current-time" id="currentTime" aria-live="polite">
             <i class="bi bi-clock" aria-hidden="true"></i>
@@ -59,7 +59,15 @@
             <h3 class="dash-card-title">Family Saving (Ranked by %)</h3>
             <span class="dash-card-badge" id="familyCount">0 members</span>
         </div>
-        <div class="table-responsive">
+        <div class="leaderboard-group-toolbar" id="familyGroupToolbar">
+            <label class="form-label" for="familyGroupSelect">Group</label>
+            <select class="form-select" id="familyGroupSelect" aria-label="Choose group for family leaderboard">
+            </select>
+        </div>
+        <p class="page-subtitle leaderboard-family-empty d-none" id="familyLeaderboardEmpty" role="status">
+            No groups have leaderboard enabled. Owners and admins can turn it on from the Groups page.
+        </p>
+        <div class="table-responsive" id="familyLeaderboardTableWrap">
             <table class="txn-table leaderboard-table">
                 <thead>
                     <tr>

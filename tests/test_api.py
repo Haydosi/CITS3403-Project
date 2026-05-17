@@ -453,6 +453,62 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertAlmostEqual(float(me["total_saved"]), 100.0, places=2)
 
+    def test_group_leaderboard_enabled_toggle_and_filter(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        g1 = self.client.post(
+            "/api/private/groups", json={"group_name": "Alpha"}
+        ).get_json()["group"]["id"]
+        g2 = self.client.post(
+            "/api/private/groups", json={"group_name": "Beta"}
+        ).get_json()["group"]["id"]
+
+        all_groups = self.client.get("/api/private/me/groups").get_json()["groups"]
+        self.assertEqual(len(all_groups), 2)
+
+        lb_groups = self.client.get(
+            "/api/private/me/groups?leaderboard=1"
+        ).get_json()["groups"]
+        self.assertEqual(len(lb_groups), 2)
+
+        off = self.client.patch(
+            f"/api/private/groups/{g2}",
+            json={"leaderboard_enabled": False},
+        )
+        self.assertEqual(off.status_code, 200)
+        self.assertFalse(off.get_json()["group"]["leaderboard_enabled"])
+
+        lb_groups = self.client.get(
+            "/api/private/me/groups?leaderboard=1"
+        ).get_json()["groups"]
+        self.assertEqual(len(lb_groups), 1)
+        self.assertEqual(lb_groups[0]["id"], g1)
+
+        blocked = self.client.get(f"/api/private/leaderboard/family/{g2}")
+        self.assertEqual(blocked.status_code, 403)
+
+        ok = self.client.get(f"/api/private/leaderboard/family/{g1}")
+        self.assertEqual(ok.status_code, 200)
+
+    def test_member_cannot_toggle_group_leaderboard(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Fam"}
+        ).get_json()["group"]["id"]
+        self._register_user(email="member@example.com", password="password123")
+        self._login_user(email="owner@example.com", password="password123")
+        self.client.post(
+            f"/api/private/groups/{gid}/members",
+            json={"email": "member@example.com"},
+        )
+        self._login_user(email="member@example.com", password="password123")
+        res = self.client.patch(
+            f"/api/private/groups/{gid}",
+            json={"leaderboard_enabled": False},
+        )
+        self.assertEqual(res.status_code, 403)
+
 
 if __name__ == "__main__":
     unittest.main()
