@@ -31,8 +31,6 @@ const worldTabBtn = $("worldTabBtn");
 const groupTabBtn = $("groupTabBtn");
 const lbUpdated = $("lbUpdated");
 const lbUpdatedLabel = lbUpdated?.querySelector("span");
-const lbServerTime = $("lbServerTime");
-const lbServerTimeLabel = lbServerTime?.querySelector("span");
 
 const windowBtns = document.querySelectorAll(".lb-window-tab");
 
@@ -254,23 +252,6 @@ function updateLastFetchedLabel() {
     else lbUpdatedLabel.textContent = `Updated ${Math.floor(seconds / 60)}m ago`;
 }
 
-// ─── Server time (Ajax) ────────────────────────────────────
-
-async function fetchServerTime() {
-    if (!lbServerTimeLabel) return;
-    try {
-        const res = await fetch("/api/private/ajax_current_time");
-        if (!res.ok) {
-            lbServerTimeLabel.textContent = "Time unavailable";
-            return;
-        }
-        const data = await res.json();
-        lbServerTimeLabel.textContent = data.formatted || data.iso || "—";
-    } catch (_) {
-        lbServerTimeLabel.textContent = "Time unavailable";
-    }
-}
-
 // ─── Data fetching ─────────────────────────────────────────
 
 async function fetchGroups() {
@@ -389,15 +370,10 @@ async function backgroundRefresh() {
 
 setInterval(backgroundRefresh, REFRESH_MS);
 setInterval(updateLastFetchedLabel, 10 * 1000);
-setInterval(fetchServerTime, 30 * 1000);
 document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) {
-        backgroundRefresh();
-        fetchServerTime();
-    }
+    if (!document.hidden) backgroundRefresh();
 });
 
 updateScopeView();
 updateWindowView();
-fetchServerTime();
 refresh({ refetchGroups: true });

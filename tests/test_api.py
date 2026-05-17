@@ -89,20 +89,6 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["user"]["email"], "user@example.com")
 
-    def test_ajax_current_time_api(self):
-        # Ajax current time requires auth and returns ISO + formatted UTC.
-        self.assertEqual(
-            self.client.get("/api/private/ajax_current_time").status_code, 401
-        )
-        self._register_user()
-        self._login_user()
-        response = self.client.get("/api/private/ajax_current_time")
-        self.assertEqual(response.status_code, 200)
-        data = response.json
-        self.assertIn("iso", data)
-        self.assertIn("formatted", data)
-        self.assertIn("UTC", data["formatted"])
-
     def test_debt_loan_repayments_api(self):
         # The repayment calculator should return payment summary values.
         response = self.client.post(
