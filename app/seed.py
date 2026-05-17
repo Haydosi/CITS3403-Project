@@ -136,7 +136,7 @@ def seed_db():
     random.shuffle(pool)
 
     user_group_map = {}  # user_id -> group_id (first group only, used for tx tagging)
-    group_records = []   # (group, members) for the family pass below
+    group_records = []   # collected (group, members) tuples for later seeding passes
 
     for i, group_name in enumerate(GROUP_NAMES):
         group = Group(group_name=group_name)
@@ -279,6 +279,7 @@ def seed_db():
         for _ in range(3):
             desc, cat, lo, hi = random.choice(GROUP_EXPENSE_SAMPLES)
             payer = random.choice(members)
+            when = _recent_dt(30)
             db.session.add(Transaction(
                 user_id=payer.id,
                 group_id=group.id,
@@ -286,8 +287,8 @@ def seed_db():
                 description=desc,
                 transaction_type="expense",
                 category=cat,
-                created_at=_recent_dt(30),
-                updated_at=_recent_dt(30),
+                created_at=when,
+                updated_at=when,
             ))
 
     db.session.commit()
