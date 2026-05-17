@@ -17,7 +17,7 @@
     <!-- Top Bar: page title + primary CTA -->
     <div class="top-bar anim-in">
         <div>
-            <div class="page-title">Dashboard</div>
+            <h2 class="page-title">Dashboard</h2>
             <div class="page-subtitle">Welcome back, {{ current_user.first_name or current_user.username }}. Here's your financial snapshot for {{ current_month }}.</div>
         </div>
         <!-- Top Bar: page title + primary CTA -->
@@ -92,7 +92,7 @@
 
         <!-- Savings Targets list — rows injected by JS from TARGETS data.
                #targetsCount badge and #targetsList container are updated at runtime. -->
-        <div class="col-lg-7">
+        <div class="col-lg-7" id="savings-targets">
             <div class="dash-card anim-in anim-delay-5">
                 <div class="dash-card-header">
                     <div class="dash-card-title">Savings Targets</div>

@@ -29,6 +29,9 @@
     font-size: 1.25rem;
     font-weight: 700;
     margin: 0 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .grp-meta {
@@ -56,7 +59,7 @@
 }
 
 .grp-settings {
-    padding: 0 20px 14px;
+    padding: 12px 20px;
     border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -78,31 +81,252 @@
     color: var(--text-muted);
 }
 
-.grp-body {
-    padding: 0 20px 16px;
+.grp-body { padding: 20px; }
+
+/* ── Stat strip ───────────────────────────────────────────── */
+.grp-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
 }
 
-.grp-modal-surface {
+.grp-stat {
     background: var(--surface-2);
-    color: var(--text-primary);
     border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 78px;
 }
 
-.grp-modal-surface .form-control {
-    background: var(--surface-1);
-    border-color: var(--border-subtle);
+.grp-stat .grp-stat-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.grp-stat .grp-stat-value {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
     color: var(--text-primary);
 }
 
-.grp-modal-surface .form-control:focus {
-    border-color: var(--accent-teal);
-    box-shadow: 0 0 0 0.2rem var(--accent-teal-dim);
+.grp-stat.accent .grp-stat-value { color: var(--accent-teal); }
+
+.grp-stat .grp-stat-sub {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
+.grp-stat .grp-stat-sub .user-avatar {
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
+}
+
+/* ── Chart strip ──────────────────────────────────────────── */
+.grp-chart-wrap {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 12px 16px 8px;
+    margin-bottom: 20px;
+}
+
+.grp-chart-wrap .grp-chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+}
+
+.grp-chart-wrap .grp-chart-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.grp-chart-wrap .grp-chart-sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.grp-chart-wrap canvas {
+    width: 100% !important;
+    height: 90px !important;
+}
+
+/* ── Share bar inside member table ────────────────────────── */
+.grp-share-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--surface-3);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.grp-share-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-teal), var(--accent-blue));
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.grp-member-saved {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700;
+    color: var(--accent-teal);
+    font-size: 0.92rem;
+}
+
+.grp-member-share {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* ── Action dropdown ──────────────────────────────────────── */
+.grp-row-menu .dropdown-toggle::after { display: none; }
+
+.grp-row-menu .btn {
+    background: var(--surface-3);
+    color: var(--text-secondary);
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.grp-row-menu .btn:hover {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+}
+
+.grp-row-menu .dropdown-menu {
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    min-width: 160px;
+}
+
+.grp-row-menu .dropdown-item {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.grp-row-menu .dropdown-item:hover {
+    background: var(--surface-3);
+    color: var(--text-primary);
+}
+
+.grp-row-menu .dropdown-item.text-danger:hover {
+    background: var(--accent-rose-dim);
+    color: var(--accent-rose);
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
 .grp-empty {
     text-align: center;
-    padding: 48px 24px;
+    padding: 56px 24px;
     color: var(--text-secondary);
     border: 1px dashed var(--border-subtle);
     border-radius: var(--radius-lg);
+    background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, var(--accent-teal-dim), transparent 70%),
+        var(--surface-1);
+}
+
+.grp-empty .grp-empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+}
+
+.grp-empty h3 {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    margin: 0 0 6px;
+}
+
+.grp-empty p { margin: 0 0 18px; max-width: 360px; margin-inline: auto; }
+
+@media (max-width: 575.98px) {
+    .grp-stats { grid-template-columns: 1fr 1fr; }
+}
+
+/* Net balance accent: green when positive, red when negative. */
+.grp-stat.accent.positive .grp-stat-value {
+    color: var(--accent-mint, #2dd4a8);
+}
+.grp-stat.accent.negative .grp-stat-value {
+    color: #ef4444;
+}
+
+/* Activity chart + expense donut side by side on wide screens. */
+.grp-chart-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 20px 16px;
+}
+@media (min-width: 900px) {
+    .grp-chart-row {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.grp-breakdown-wrap {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    padding: 12px 14px;
+    background: var(--surface-2, rgba(255, 255, 255, 0.02));
+}
+.grp-breakdown-inner {
+    position: relative;
+    height: 200px;
+}
+.grp-breakdown-inner canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+.grp-breakdown-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Recent group transactions list. */
+.grp-recent-wrap {
+    padding: 0 20px 20px;
+}
+.grp-recent-wrap .grp-chart-head {
+    margin-bottom: 8px;
 }

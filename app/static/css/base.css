@@ -245,14 +245,19 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 32px;
 }
+
+.top-bar > div { min-width: 0; }
 
 .top-bar .page-title {
     font-family: 'Bricolage Grotesque', sans-serif;
     font-size: 1.65rem;
     font-weight: 700;
     letter-spacing: -0.02em;
+    margin: 0;
 }
 
 .top-bar .page-subtitle {

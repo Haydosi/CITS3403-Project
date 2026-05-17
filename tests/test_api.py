@@ -23,12 +23,15 @@ class ApiTestCase(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def _register_user(self, email="user@example.com", password="password123"):
+    def _register_user(self, email="user@example.com", password="password123", username=None):
         # Helper to register a user using the public API endpoint.
+        if username is None:
+            username = email.replace("@", "_").replace(".", "")
         return self.client.post(
             "/api/public/auth/register",
             json={
                 "email": email,
+                "username": username,
                 "password": password,
                 "confirm_password": password,
             },
@@ -451,9 +454,113 @@ class ApiTestCase(unittest.TestCase):
         # Owner is the only user with rows; total should ignore the group row.
         me = next(
             row for row in body["leaderboard"]
-            if row["email"] == "user@example.com"
+            if row["username"] == "user_examplecom"
         )
         self.assertAlmostEqual(float(me["total_saved"]), 100.0, places=2)
+
+    def test_group_detail_payload_includes_expense_stats(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Pot"}
+        ).get_json()["group"]["id"]
+
+        # Two savings (owner only) and two expenses across categories.
+        self.client.post("/api/private/transactions", json={
+            "amount": 100, "transaction_type": "savings", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 50, "transaction_type": "savings", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 30, "transaction_type": "expense", "category": "food",
+            "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 20, "transaction_type": "expense", "category": "transport",
+            "group_id": gid,
+        })
+
+        body = self.client.get("/api/private/groups").get_json()
+        g = body["groups"][0]
+        self.assertAlmostEqual(g["total_saved"], 150.0, places=2)
+        self.assertAlmostEqual(g["total_spent"], 50.0, places=2)
+        self.assertAlmostEqual(g["net_balance"], 100.0, places=2)
+        self.assertAlmostEqual(g["month_saved"], 150.0, places=2)
+        self.assertAlmostEqual(g["month_spent"], 50.0, places=2)
+        breakdown = {row["category"]: row["amount"] for row in g["expense_breakdown"]}
+        self.assertAlmostEqual(breakdown["food"], 30.0, places=2)
+        self.assertAlmostEqual(breakdown["transport"], 20.0, places=2)
+
+    def test_group_activity_returns_saved_and_spent_per_day(self):
+        self._register_user(email="a@a.com")
+        self._login_user(email="a@a.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Act"}
+        ).get_json()["group"]["id"]
+        self.client.post("/api/private/transactions", json={
+            "amount": 60, "transaction_type": "savings", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 15, "transaction_type": "expense",
+            "category": "food", "group_id": gid,
+        })
+
+        res = self.client.get(f"/api/private/groups/{gid}/activity")
+        self.assertEqual(res.status_code, 200)
+        body = res.get_json()
+        self.assertEqual(body["days"], 30)
+        series = body["series"]
+        self.assertEqual(len(series), 30)
+        # Today's point (last in series) carries both numbers.
+        last = series[-1]
+        self.assertIn("date", last)
+        self.assertIn("saved", last)
+        self.assertIn("spent", last)
+        self.assertAlmostEqual(last["saved"], 60.0, places=2)
+        self.assertAlmostEqual(last["spent"], 15.0, places=2)
+        # Earlier zero-filled days carry both zero fields.
+        self.assertEqual(series[0]["saved"], 0.0)
+        self.assertEqual(series[0]["spent"], 0.0)
+
+    def test_group_transactions_requires_membership(self):
+        self._register_user(email="o@o.com")
+        self._login_user(email="o@o.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Closed"}
+        ).get_json()["group"]["id"]
+
+        self._register_user(email="outsider@o.com")
+        self._login_user(email="outsider@o.com")
+        res = self.client.get(f"/api/private/groups/{gid}/transactions")
+        self.assertEqual(res.status_code, 403)
+
+    def test_group_transactions_returns_recent_rows_with_user(self):
+        self._register_user(email="m@m.com")
+        self._login_user(email="m@m.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Tx"}
+        ).get_json()["group"]["id"]
+        self.client.post("/api/private/transactions", json={
+            "amount": 12.5, "transaction_type": "expense",
+            "category": "food", "description": "Lunch", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 200, "transaction_type": "savings",
+            "description": "Salary", "group_id": gid,
+        })
+
+        res = self.client.get(f"/api/private/groups/{gid}/transactions")
+        self.assertEqual(res.status_code, 200)
+        body = res.get_json()
+        self.assertIn("transactions", body)
+        self.assertEqual(len(body["transactions"]), 2)
+        # Newest first.
+        first = body["transactions"][0]
+        self.assertEqual(first["transaction_type"], "savings")
+        self.assertEqual(first["description"], "Salary")
+        self.assertIn("user", first)
+        self.assertEqual(first["user"]["email"], "m@m.com")
 
     def test_group_leaderboard_enabled_toggle_and_filter(self):
         self._register_user(email="owner@example.com")
@@ -486,10 +593,10 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(len(lb_groups), 1)
         self.assertEqual(lb_groups[0]["id"], g1)
 
-        blocked = self.client.get(f"/api/private/leaderboard/family/{g2}")
+        blocked = self.client.get(f"/api/private/leaderboard/group/{g2}")
         self.assertEqual(blocked.status_code, 403)
 
-        ok = self.client.get(f"/api/private/leaderboard/family/{g1}")
+        ok = self.client.get(f"/api/private/leaderboard/group/{g1}")
         self.assertEqual(ok.status_code, 200)
 
     def test_member_cannot_toggle_group_leaderboard(self):

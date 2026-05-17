@@ -1,12 +1,10 @@
 import os
 import random
-import string
 from datetime import datetime, timedelta, UTC, date
 
 from app import db
 from app.models import (
     User, Group, UserGroupMembership, GroupRole, Transaction,
-    FamilyGroup, FamilyMember, FamilyTransaction, FamilyGoal,
     SavingsTarget,
 )
 
@@ -19,6 +17,18 @@ FIRST_NAMES = [
 LAST_NAMES = [
     "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller",
     "Davis", "Wilson", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris",
+]
+
+# Used to build display usernames that do NOT leak the seeded real names
+# or emails. Pairs an adjective with an animal and a number suffix.
+HANDLE_ADJECTIVES = [
+    "frugal", "thrifty", "swift", "bright", "quiet", "bold", "gentle",
+    "cosmic", "lucky", "sunny", "happy", "clever", "calm", "brave", "mellow",
+]
+
+HANDLE_ANIMALS = [
+    "panda", "otter", "falcon", "koala", "wolf", "fox", "lynx", "tiger",
+    "eagle", "puffin", "shark", "owl", "raven", "bison", "dolphin",
 ]
 
 EXPENSE_DESCS = [
@@ -54,15 +64,6 @@ GROUP_NAMES = [
     "The Frugal Five", "Perth Savers", "Budget Buddies", "Money Mindful", "Savings Squad",
 ]
 
-GOAL_OPTIONS = [
-    ("Holiday Fund", 3000, 8000),
-    ("New Car", 8000, 25000),
-    ("Emergency Fund", 2000, 10000),
-    ("Home Deposit", 15000, 50000),
-    ("Christmas Fund", 500, 2000),
-    ("Laptop Upgrade", 800, 2500),
-]
-
 # (name, emoji, target_amount, exact_current_for_test_user, days_until_deadline)
 TARGET_OPTIONS = [
     ("Summer Trip", "✈️", 2000, 1400, 60),
@@ -73,13 +74,31 @@ TARGET_OPTIONS = [
 
 
 def _random_dt(months_back=6):
+    # Weighted toward recent activity: ~50% in the last 30 days, ~30% in the
+    # 1-3 month range, ~20% older. Keeps the dashboards / sparkline charts /
+    # week-month leaderboard filters visibly populated instead of mostly empty.
     now = datetime.now(UTC)
-    start = now - timedelta(days=months_back * 30)
-    return start + timedelta(seconds=random.randint(0, int((now - start).total_seconds())))
+    bucket = random.random()
+    if bucket < 0.50:
+        delta_days = random.uniform(0, 30)
+    elif bucket < 0.80:
+        delta_days = random.uniform(30, 90)
+    else:
+        delta_days = random.uniform(90, months_back * 30)
+    return now - timedelta(
+        days=delta_days,
+        seconds=random.randint(0, 86399),
+    )
 
 
-def _family_code():
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
+def _recent_dt(days_back):
+    # Uniform random datetime in the last `days_back` days. Used to seed
+    # guaranteed-recent activity for demo charts.
+    now = datetime.now(UTC)
+    return now - timedelta(
+        days=random.uniform(0, days_back),
+        seconds=random.randint(0, 86399),
+    )
 
 
 TEST_EMAIL = "test@example.com"
@@ -100,19 +119,26 @@ def seed_db():
     db.session.add(test_user)
     db.session.flush()
 
-    # Random users
+    # Random users. Usernames are intentionally generated independently of
+    # the real first/last name so the leaderboard never reveals PII.
     users = [test_user]
-    used = {("Test", "User")}
+    used_names = {("Test", "User")}
+    used_usernames = {"testuser"}
     for _ in range(20):
         while True:
             first = random.choice(FIRST_NAMES)
             last = random.choice(LAST_NAMES)
-            if (first, last) not in used:
-                used.add((first, last))
+            if (first, last) not in used_names:
+                used_names.add((first, last))
+                break
+        while True:
+            handle = f"{random.choice(HANDLE_ADJECTIVES)}{random.choice(HANDLE_ANIMALS)}{random.randint(1, 999)}"
+            if handle not in used_usernames:
+                used_usernames.add(handle)
                 break
         n = random.randint(1, 99)
         u = User(
-            username=f"{first.lower()}{last.lower()}{n}",
+            username=handle,
             email=f"{first.lower()}.{last.lower()}{n}@example.com",
             first_name=first,
             last_name=last,
@@ -129,7 +155,7 @@ def seed_db():
     random.shuffle(pool)
 
     user_group_map = {}  # user_id -> group_id (first group only, used for tx tagging)
-    group_records = []   # (group, members) for the family pass below
+    group_records = []   # collected (group, members) tuples for later seeding passes
 
     for i, group_name in enumerate(GROUP_NAMES):
         group = Group(group_name=group_name)
@@ -163,7 +189,10 @@ def seed_db():
 
     db.session.flush()
 
-    # --- Transactions (25 % chance of group_id for group members) ---
+    # --- Transactions (25 % chance of group_id for savings/transfer rows) ---
+    # Group-tagged transactions feed the group leaderboard and the per-group
+    # sparkline chart. Expenses are intentionally NOT group-tagged so they
+    # don't subtract from a group's "savings total".
     for user in users:
         gid = user_group_map.get(user.id)
         for _ in range(random.randint(20, 50)):
@@ -183,9 +212,10 @@ def seed_db():
                 desc = random.choice(TRANSFER_DESCS)
 
             created = _random_dt(6)
+            in_group = gid and tx_type != "expense" and random.random() < 0.25
             db.session.add(Transaction(
                 user_id=user.id,
-                group_id=gid if (gid and random.random() < 0.25) else None,
+                group_id=gid if in_group else None,
                 amount=amount,
                 description=desc,
                 transaction_type=tx_type,
@@ -193,6 +223,41 @@ def seed_db():
                 created_at=created,
                 updated_at=created,
             ))
+
+    # Guaranteed recent group activity so the new 30-day sparkline chart on
+    # the Groups page is visibly populated. Each group member gets 2-4
+    # savings deposits spread across the last 21 days.
+    for group, members in group_records:
+        for user in members:
+            for _ in range(random.randint(2, 4)):
+                amount = round(random.uniform(80, 600), 2)
+                created = _recent_dt(21)
+                db.session.add(Transaction(
+                    user_id=user.id,
+                    group_id=group.id,
+                    amount=amount,
+                    description=random.choice(SAVINGS_DESCS),
+                    transaction_type="savings",
+                    category=None,
+                    created_at=created,
+                    updated_at=created,
+                ))
+
+    # Guaranteed last-7-days personal savings for the test user so the
+    # "This week" leaderboard filter has visible content for them.
+    for _ in range(3):
+        amount = round(random.uniform(120, 480), 2)
+        created = _recent_dt(7)
+        db.session.add(Transaction(
+            user_id=test_user.id,
+            group_id=None,
+            amount=amount,
+            description=random.choice(SAVINGS_DESCS),
+            transaction_type="savings",
+            category=None,
+            created_at=created,
+            updated_at=created,
+        ))
 
     db.session.flush()
 
@@ -219,71 +284,30 @@ def seed_db():
 
     db.session.flush()
 
-    # --- Pass 2: FamilyGroups, FamilyMembers, FamilyTransactions, FamilyGoals ---
+    # Seed a handful of group-tagged expense rows so the Groups page exercises
+    # the savings/spent/breakdown stats with real data.
+    GROUP_EXPENSE_SAMPLES = [
+        ("Groceries", "groceries", 45.0, 95.0),
+        ("Pizza night", "food", 25.0, 60.0),
+        ("Uber to airport", "transport", 30.0, 80.0),
+        ("Power bill", "utilities", 80.0, 200.0),
+        ("Movie tickets", "entertainment", 20.0, 50.0),
+    ]
     for group, members in group_records:
-        owner = members[0]
-
-        fg = FamilyGroup(
-            global_group_id=group.id,
-            group_name=group.group_name,
-            owner_id=owner.id,
-            family_code=_family_code(),
-            member_count=len(members),
-        )
-        db.session.add(fg)
-        db.session.flush()
-
-        family_members = []
-        for user in members:
-            total = (
-                db.session.query(db.func.sum(Transaction.amount))
-                .filter(Transaction.user_id == user.id, Transaction.amount > 0)
-                .scalar()
-            ) or 0.0
-
-            fm = FamilyMember(
-                family_group_id=fg.id,
-                global_user_id=user.id,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                email=user.email,
-                total_savings=round(total, 2),
-            )
-            db.session.add(fm)
-            family_members.append((user, fm))
-
-        db.session.flush()
-
-        group_total = sum(fm.total_savings for _, fm in family_members)
-        fg.total_savings = round(group_total, 2)
-        for _, fm in family_members:
-            fm.contribution_percentage = round(
-                (fm.total_savings / group_total * 100) if group_total > 0 else 0, 2
-            )
-
-        db.session.flush()
-
-        for user, fm in family_members:
-            for tx in Transaction.query.filter_by(user_id=user.id).limit(10).all():
-                db.session.add(FamilyTransaction(
-                    family_group_id=fg.id,
-                    family_member_id=fm.id,
-                    amount=tx.amount,
-                    description=tx.description,
-                    transaction_type=tx.transaction_type,
-                    recorded_at=tx.created_at,
-                ))
-
-        for goal_name, lo, hi in random.sample(GOAL_OPTIONS, random.randint(1, 2)):
-            target = round(random.uniform(lo, hi), 2)
-            current = round(random.uniform(0, target), 2)
-            db.session.add(FamilyGoal(
-                family_group_id=fg.id,
-                goal_name=goal_name,
-                target_amount=target,
-                current_amount=current,
-                deadline=date.today() + timedelta(days=random.randint(30, 365)),
-                status="completed" if current >= target else "active",
+        # ~3 group expenses per group, paid by random members.
+        for _ in range(3):
+            desc, cat, lo, hi = random.choice(GROUP_EXPENSE_SAMPLES)
+            payer = random.choice(members)
+            when = _recent_dt(30)
+            db.session.add(Transaction(
+                user_id=payer.id,
+                group_id=group.id,
+                amount=round(random.uniform(lo, hi), 2),
+                description=desc,
+                transaction_type="expense",
+                category=cat,
+                created_at=when,
+                updated_at=when,
             ))
 
     db.session.commit()

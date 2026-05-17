@@ -3,81 +3,102 @@
 {% block title %}MyMoney - Leaderboard{% endblock %}
 
 {% block page_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/leaderboard.css') }}">
 {% endblock %}
 
-
 {% block content %}
-<!-- Main leaderboard content area -->
 <main class="main-content">
-    <section class="top-bar anim-in">
+    <section class="top-bar lb-top-bar anim-in">
         <div>
-            <h2 class="page-title">Savings Leaderboard</h2>
-            <p class="page-subtitle">World rankings or family competition by group.</p>
+            <h2 class="page-title">Leaderboard</h2>
+            <p class="page-subtitle">See how your savings stack up — globally and within your group.</p>
         </div>
-        <div class="dash-card-badge leaderboard-current-time" id="currentTime" aria-live="polite">
-            <i class="bi bi-clock" aria-hidden="true"></i>
-            <span>--:--:--</span>
-        </div>
-    </section>
-
-    <!-- My Savings Summary -->
-    <section class="dash-card mb-4 anim-in anim-delay-1">
-        <div class="dash-card-header">
-            <h3 class="dash-card-title">My Total Savings</h3>
-        </div>
-        <div class="stat-value" id="mySavingsAmount" style="font-size: 2.5rem; color: var(--accent-teal);">
-            $0.00
-        </div>
-        <p class="page-subtitle" style="margin-top: 8px;">This data is only visible to you on this device.</p>
-    </section>
-
-    <!-- Section toggle buttons (World vs Family leaderboard) -->
-    <section class="dash-card mb-4 anim-in anim-delay-1">
-        <div class="section-switcher">
-            <button id="worldTabBtn" class="section-tab active" type="button">
-                <i class="bi bi-globe2"></i> World Top Saver
-            </button>
-            <button id="familyTabBtn" class="section-tab" type="button">
-                <i class="bi bi-people-fill"></i> Family Saving
-            </button>
+        <div class="lb-top-actions">
+            <div class="lb-tabs" role="tablist" aria-label="Leaderboard scope">
+                <button id="worldTabBtn" class="lb-tab active" type="button" role="tab" aria-selected="true">
+                    <i class="bi bi-globe2"></i> Global
+                </button>
+                <button id="groupTabBtn" class="lb-tab" type="button" role="tab" aria-selected="false">
+                    <i class="bi bi-people-fill"></i> Group
+                </button>
+            </div>
+            <div class="lb-updated" id="lbUpdated" aria-live="polite">
+                <i class="bi bi-arrow-clockwise"></i>
+                <span>Loading…</span>
+            </div>
         </div>
     </section>
 
-    <!-- World leaderboard cards are injected by leaderboard.js -->
-    <section class="dash-card mb-4 anim-in anim-delay-2" id="worldSection">
-        <div class="dash-card-header">
-            <h3 class="dash-card-title">World Top Saver (Ranked by %)</h3>
-            <span class="dash-card-badge">Global</span>
+    <!-- Filter strip: timeframe + group selector -->
+    <section class="lb-filter-strip anim-in anim-delay-1">
+        <div class="lb-window-switcher" role="tablist" aria-label="Timeframe">
+            <button class="lb-window-tab active" data-window="all" type="button">All time</button>
+            <button class="lb-window-tab" data-window="month" type="button">This month</button>
+            <button class="lb-window-tab" data-window="week" type="button">This week</button>
         </div>
-        <div class="row g-3" id="topSaversCards"></div>
+        <div class="lb-group-picker d-none" id="groupPickerWrap">
+            <label class="form-label mb-0" for="groupPicker">Group</label>
+            <select id="groupPicker" class="form-select form-select-sm"></select>
+        </div>
     </section>
 
-    <!-- Family leaderboard table rows are injected by leaderboard.js -->
-    <section class="dash-card anim-in anim-delay-3 hidden-section" id="familySection">
-        <div class="dash-card-header">
-            <h3 class="dash-card-title">Family Saving (Ranked by %)</h3>
-            <span class="dash-card-badge" id="familyCount">0 members</span>
+    <!-- ─────────────  WORLD / GLOBAL  ────────────── -->
+    <section class="anim-in anim-delay-2" id="worldSection">
+        <div id="podiumWrap" class="lb-podium"></div>
+
+        <div class="dash-card mt-3" id="globalTableCard">
+            <div class="dash-card-header">
+                <h3 class="dash-card-title">Standings</h3>
+                <span class="dash-card-badge" id="globalRangeBadge">All time</span>
+            </div>
+            <div class="table-responsive">
+                <table class="txn-table leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Saver</th>
+                            <th class="text-end">Saved</th>
+                            <th class="text-end">vs leader</th>
+                        </tr>
+                    </thead>
+                    <tbody id="globalTableBody"></tbody>
+                </table>
+            </div>
+            <div id="yourRankRow" class="lb-your-rank d-none">
+                <span class="lb-your-rank-label">Your rank</span>
+                <span id="yourRankValue"></span>
+            </div>
         </div>
-        <div class="leaderboard-group-toolbar" id="familyGroupToolbar">
-            <label class="form-label" for="familyGroupSelect">Group</label>
-            <select class="form-select" id="familyGroupSelect" aria-label="Choose group for family leaderboard">
-            </select>
-        </div>
-        <p class="page-subtitle leaderboard-family-empty d-none" id="familyLeaderboardEmpty" role="status">
-            No groups have leaderboard enabled. Owners and admins can turn it on from the Groups page.
-        </p>
-        <div class="table-responsive" id="familyLeaderboardTableWrap">
-            <table class="txn-table leaderboard-table">
-                <thead>
-                    <tr>
-                        <th>Rank</th>
-                        <th>Family Member</th>
-                        <th class="text-end">Percentage</th>
-                    </tr>
-                </thead>
-                <tbody id="familyLeaderboardBody"></tbody>
-            </table>
+    </section>
+
+    <!-- ─────────────  GROUP  ────────────── -->
+    <section class="hidden-section anim-in anim-delay-2" id="groupSection">
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3 class="dash-card-title" id="groupTitle">Group savings</h3>
+                <span class="dash-card-badge" id="groupCount">0 members</span>
+            </div>
+            <div id="groupEmpty" class="lb-group-empty d-none">
+                <i class="bi bi-people"></i>
+                <p>You're not in a group yet.</p>
+                <a href="{{ url_for('main.groups') }}" class="btn btn-accent btn-sm">
+                    <i class="bi bi-plus-lg"></i> Create or join a group
+                </a>
+            </div>
+            <div class="table-responsive" id="groupTableWrap">
+                <table class="txn-table leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Member</th>
+                            <th class="text-end">Saved</th>
+                            <th class="text-end">Share</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupTableBody"></tbody>
+                </table>
+            </div>
         </div>
     </section>
 </main>

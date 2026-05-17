@@ -1,50 +1,38 @@
-<!-- ============================================================
-this belongs in the sidebar partial
-============================================================ -->
+<!-- Mobile sidebar toggle (hidden on desktop via .sidebar-toggle CSS) -->
 <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
     <i class="bi bi-list"></i>
 </button>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<!-- Collapsible left navigation used across dashboard-style pages -->
-<!-- remember to use flask links for these later (once it is actually functional) -->
-
-
-<!-- ============================================================
-     Mobile sidebar controls
-     The toggle button and overlay are hidden on desktop (display:none
-     in CSS) and revealed via the responsive breakpoint at <992px.
-============================================================ -->
-
-<!-- maybe the sidebar should be dynamic? showing different things to different people -->
-
 <aside class="sidebar" id="sidebar">
-    <!-- Brand / logo -->
     <div class="sidebar-brand">
         <h1><span class="brand-dot"></span>MyMoney</h1>
     </div>
-    <!-- Navigation links grouped by section label -->
-    <!-- remember to use flask links for these later (once it is actually functional) -->
     <nav class="sidebar-nav">
         <div class="nav-section-label">Main</div>
-        <a href="{{ url_for('main.dashboard')}}"
-            class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' else '' }}"><i
-                class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="{{ url_for('main.dashboard') }}"
+            class="nav-link {{ 'active' if request.endpoint == 'main.dashboard' else '' }}">
+            <i class="bi bi-grid-1x2-fill"></i> Dashboard
+        </a>
         <a href="{{ url_for('main.transactions') }}"
-            class="nav-link {{ 'active' if request.endpoint == 'main.transactions' else '' }}"><i class="bi bi-wallet2"></i> Transactions</a>
-        <a href="#" class="nav-link"><i class="bi bi-bullseye"></i> Targets</a>
+            class="nav-link {{ 'active' if request.endpoint == 'main.transactions' else '' }}">
+            <i class="bi bi-wallet2"></i> Transactions
+        </a>
         <div class="nav-section-label">Social</div>
-        <a href="{{ url_for('main.leaderboard')}}"
-            class="nav-link {{ 'active' if request.endpoint == 'main.leaderboard' else '' }}"><i class="bi bi-trophy"></i>
-            Leaderboard</a>
-        <a href="{{ url_for('main.groups')}}"
-            class="nav-link {{ 'active' if request.endpoint == 'main.groups' else '' }}"><i class="bi bi-people"></i> Groups</a>
+        <a href="{{ url_for('main.leaderboard') }}"
+            class="nav-link {{ 'active' if request.endpoint == 'main.leaderboard' else '' }}">
+            <i class="bi bi-trophy"></i> Leaderboard
+        </a>
+        <a href="{{ url_for('main.groups') }}"
+            class="nav-link {{ 'active' if request.endpoint == 'main.groups' else '' }}">
+            <i class="bi bi-people"></i> Groups
+        </a>
         <div class="nav-section-label">Tools</div>
         <a href="{{ url_for('main.debt_calculator') }}"
-            class="nav-link {{ 'active' if request.endpoint == 'main.debt_calculator' else '' }}"><i class="bi bi-calculator"></i> Debt Calculator</a>
-        <a href="#" class="nav-link"><i class="bi bi-robot"></i> AI Advisor</a>
+            class="nav-link {{ 'active' if request.endpoint == 'main.debt_calculator' else '' }}">
+            <i class="bi bi-calculator"></i> Debt Calculator
+        </a>
     </nav>
-    <!-- Logged-in user info at the bottom of the sidebar -->
     <div class="sidebar-footer">
         <a href="{{ url_for('main.profile') }}" class="user-pill text-decoration-none">
             <div class="user-avatar">
@@ -61,7 +49,7 @@ this belongs in the sidebar partial
                 <div class="user-email">{{ current_user.email }}</div>
             </div>
         </a>
-        <a href="{{ url_for('main.logout') }}" class="logout-btn" title="Logout">
+        <a href="{{ url_for('main.logout') }}" class="logout-btn" title="Logout" data-action="logout">
             <i class="bi bi-box-arrow-right"></i>
         </a>
     </div>
