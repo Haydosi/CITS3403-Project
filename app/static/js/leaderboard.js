@@ -32,7 +32,7 @@ const groupTabBtn = $("groupTabBtn");
 const lbUpdated = $("lbUpdated");
 const lbUpdatedLabel = lbUpdated?.querySelector("span");
 const lbServerTime = $("lbServerTime");
-const lbServerTimeLabel = lbServerTime?.querySelector("span");
+const lbServerTimeValue = $("lbServerTimeValue");
 
 const windowBtns = document.querySelectorAll(".lb-window-tab");
 
@@ -257,17 +257,23 @@ function updateLastFetchedLabel() {
 // ─── Server time (Ajax) ────────────────────────────────────
 
 async function fetchServerTime() {
-    if (!lbServerTimeLabel) return;
+    if (!lbServerTimeValue) return;
     try {
         const res = await fetch("/api/private/ajax_current_time");
         if (!res.ok) {
-            lbServerTimeLabel.textContent = "Time unavailable";
+            lbServerTimeValue.textContent = "Time unavailable";
+            lbServerTime?.classList.remove("lb-ajax-time-banner--live");
+            lbServerTime?.classList.add("lb-ajax-time-banner--error");
             return;
         }
         const data = await res.json();
-        lbServerTimeLabel.textContent = data.formatted || data.iso || "—";
+        lbServerTimeValue.textContent = data.formatted || data.iso || "—";
+        lbServerTime?.classList.add("lb-ajax-time-banner--live");
+        lbServerTime?.classList.remove("lb-ajax-time-banner--error");
     } catch (_) {
-        lbServerTimeLabel.textContent = "Time unavailable";
+        lbServerTimeValue.textContent = "Time unavailable";
+        lbServerTime?.classList.remove("lb-ajax-time-banner--live");
+        lbServerTime?.classList.add("lb-ajax-time-banner--error");
     }
 }
 
