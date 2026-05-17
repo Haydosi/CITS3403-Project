@@ -17,6 +17,36 @@ const txnDescription = document.getElementById("txnDescription");
 const txnSaveBtn = document.getElementById("txnSaveBtn");
 const openAddTxn = document.getElementById("openAddTxn");
 
+// Keep in sync with ALLOWED_EXPENSE_CATEGORIES in app/api.py
+const CATEGORY_CONFIG = {
+    food: { label: "Food", color: "#f59e0b" },
+    groceries: { label: "Groceries", color: "#84cc16" },
+    transport: { label: "Transport", color: "#3b82f6" },
+    housing: { label: "Housing", color: "#8b5cf6" },
+    utilities: { label: "Utilities", color: "#06b6d4" },
+    entertainment: { label: "Entertainment", color: "#ec4899" },
+    health: { label: "Health", color: "#ef4444" },
+    shopping: { label: "Shopping", color: "#f43f5e" },
+    other: { label: "Other", color: "#64748b" },
+};
+
+function categoryConf(category) {
+    if (!category) return { label: "—", color: "#64748b" };
+    return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other;
+}
+
+function formatCategoryCell(row) {
+    if ((row.transaction_type || "").toLowerCase() !== "expense") {
+        return "—";
+    }
+    const cat = row.category;
+    if (!cat) {
+        return '<span class="txn-category-pill txn-category-missing">Uncategorised</span>';
+    }
+    const conf = categoryConf(cat);
+    return `<span class="txn-category-pill" style="background:${conf.color}20;color:${conf.color}">${escapeHtml(conf.label)}</span>`;
+}
+
 function updateCategoryVisibility() {
     const isExpense = txnType.value === "expense";
     txnCategoryWrap.classList.toggle("d-none", !isExpense);
@@ -99,6 +129,7 @@ function renderRows(transactions) {
         tr.innerHTML = `
             <td>${formatDate(row.created_at)}</td>
             <td><span class="txn-type-pill ${typeClass(row.transaction_type)}">${row.transaction_type || "—"}</span></td>
+            <td>${formatCategoryCell(row)}</td>
             <td>${escapeHtml(row.description || "—")}</td>
             <td class="text-end ${amtClass}">${currency(amt)}</td>
             <td class="text-end">
@@ -159,6 +190,10 @@ txnSaveBtn.addEventListener("click", async () => {
     const amountVal = txnAmount.value.trim();
     if (amountVal === "") {
         showTxnError("Amount is required.");
+        return;
+    }
+    if (txnType.value === "expense" && !txnCategory.value) {
+        showTxnError("Choose an expense category.");
         return;
     }
     const payload = {
