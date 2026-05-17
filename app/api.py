@@ -617,6 +617,14 @@ def _parse_optional_group_id(raw):
     return gid
 
 
+def _personal_tx_filters(user_id):
+    # Personal finance queries must ignore group-tagged rows (Issue 6).
+    return (
+        Transaction.user_id == user_id,
+        Transaction.group_id.is_(None),
+    )
+
+
 def _transaction_to_json(transaction, group_name=None):
     # Serialize a transaction for JSON, optionally including the group label.
     data = transaction.to_dict()
@@ -652,22 +660,26 @@ def api_transactions():
         return json_error("Authentication required", 401)
 
     if request.method == "GET":
-        # Personal queries exclude group-tagged rows — those only count in the
-        # group/family context (see Issue 6).
+        personal = _personal_tx_filters(current_user.id)
         total_balance = (
             db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
-            .filter(
-                Transaction.user_id == current_user.id,
-                Transaction.group_id.is_(None),
-            )
+            .filter(*personal)
             .scalar()
         )
         rows = (
             db.session.query(Transaction, Group.group_name)
             .outerjoin(Group, Transaction.group_id == Group.id)
+            .filter(*personal)
+            .order_by(Transaction.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        group_rows = (
+            db.session.query(Transaction, Group.group_name)
+            .join(Group, Transaction.group_id == Group.id)
             .filter(
                 Transaction.user_id == current_user.id,
-                Transaction.group_id.is_(None),
+                Transaction.group_id.isnot(None),
             )
             .order_by(Transaction.created_at.desc())
             .limit(200)
@@ -676,6 +688,9 @@ def api_transactions():
         return jsonify(
             transactions=[
                 _transaction_to_json(tx, gname) for tx, gname in rows
+            ],
+            group_transactions=[
+                _transaction_to_json(tx, gname) for tx, gname in group_rows
             ],
             total_balance=float(total_balance) if total_balance else 0.0,
         )
@@ -1057,11 +1072,7 @@ def api_dashboard_summary():
     now = datetime.now(UTC).replace(tzinfo=None)
     month_start = datetime(now.year, now.month, 1)
 
-    # Personal dashboard excludes group-tagged transactions (Issue 6).
-    personal_only = (
-        Transaction.user_id == current_user.id,
-        Transaction.group_id.is_(None),
-    )
+    personal_only = _personal_tx_filters(current_user.id)
 
     total_balance = float(
         db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
