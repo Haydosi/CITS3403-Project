@@ -12,7 +12,7 @@
     <section class="top-bar anim-in">
         <div>
             <h2 class="page-title">Transactions</h2>
-            <p class="page-subtitle">Log your personal savings, expenses, and transfers.</p>
+            <p class="page-subtitle">Personal balance excludes group-tagged entries — assign a group to count toward that family's leaderboard only.</p>
         </div>
         <button type="button" class="btn btn-accent" id="openAddTxn">
             <i class="bi bi-plus-lg"></i> Add transaction
@@ -21,8 +21,8 @@
 
     <section class="dash-card mb-4 anim-in anim-delay-1">
         <div class="dash-card-header">
-            <h3 class="dash-card-title">Running total</h3>
-            <span class="dash-card-badge">All time</span>
+            <h3 class="dash-card-title">Personal running total</h3>
+            <span class="dash-card-badge">Excludes group</span>
         </div>
         <div class="stat-value txn-total" id="txnTotalBalance">$0.00</div>
         <p class="page-subtitle" id="txnListMeta" style="margin-top: 8px;">0 entries loaded</p>
@@ -30,7 +30,7 @@
 
     <section class="dash-card anim-in anim-delay-2">
         <div class="dash-card-header">
-            <h3 class="dash-card-title">History</h3>
+            <h3 class="dash-card-title">Personal history</h3>
             <span class="dash-card-badge">Latest 200</span>
         </div>
         <div id="txnAlert" class="alert alert-danger py-2 px-3 mb-3 d-none" role="alert"></div>
@@ -47,6 +47,30 @@
                     </tr>
                 </thead>
                 <tbody id="txnTableBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="dash-card anim-in anim-delay-3 d-none" id="txnGroupSection">
+        <div class="dash-card-header">
+            <h3 class="dash-card-title">Group transactions</h3>
+            <span class="dash-card-badge">Family leaderboard</span>
+        </div>
+        <p class="page-subtitle txn-group-hint">These entries do not affect your personal balance or the global leaderboard.</p>
+        <div class="table-responsive">
+            <table class="txn-table txn-page-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Group</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th class="text-end">Amount</th>
+                        <th class="text-end txn-actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="txnGroupTableBody"></tbody>
             </table>
         </div>
     </section>
@@ -88,6 +112,13 @@
                         <option value="shopping">Shopping</option>
                         <option value="other">Other</option>
                     </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="txnGroup">Assign to group</label>
+                    <select class="form-select" id="txnGroup">
+                        <option value="">Personal only</option>
+                    </select>
+                    <div class="form-text txn-group-help">Group savings count on that family's leaderboard, not your personal total.</div>
                 </div>
                 <div class="mb-0">
                     <label class="form-label" for="txnDescription">Description (optional)</label>

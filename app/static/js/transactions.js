@@ -3,6 +3,8 @@
  */
 
 const txnTableBody = document.getElementById("txnTableBody");
+const txnGroupTableBody = document.getElementById("txnGroupTableBody");
+const txnGroupSection = document.getElementById("txnGroupSection");
 const txnTotalBalance = document.getElementById("txnTotalBalance");
 const txnListMeta = document.getElementById("txnListMeta");
 const txnAlert = document.getElementById("txnAlert");
@@ -13,9 +15,13 @@ const txnAmount = document.getElementById("txnAmount");
 const txnType = document.getElementById("txnType");
 const txnCategoryWrap = document.getElementById("txnCategoryWrap");
 const txnCategory = document.getElementById("txnCategory");
+const txnGroup = document.getElementById("txnGroup");
 const txnDescription = document.getElementById("txnDescription");
 const txnSaveBtn = document.getElementById("txnSaveBtn");
 const openAddTxn = document.getElementById("openAddTxn");
+
+let userGroups = [];
+let allLoadedTransactions = [];
 
 // Keep in sync with ALLOWED_EXPENSE_CATEGORIES in app/api.py
 const CATEGORY_CONFIG = {
@@ -97,6 +103,24 @@ function formatDate(iso) {
     });
 }
 
+function populateGroupSelect(selectedId) {
+    if (!txnGroup) return;
+    const sel = selectedId != null && selectedId !== "" ? String(selectedId) : "";
+    txnGroup.innerHTML = '<option value="">Personal only</option>';
+    userGroups.forEach((g) => {
+        const opt = document.createElement("option");
+        opt.value = String(g.id);
+        opt.textContent = g.group_name;
+        if (opt.value === sel) opt.selected = true;
+        txnGroup.appendChild(opt);
+    });
+}
+
+async function loadUserGroups() {
+    const res = await fetch("/api/private/me/groups");
+    userGroups = res.ok ? (await res.json()).groups || [] : [];
+}
+
 function resetModalForAdd() {
     txnEditId.value = "";
     txnModalLabel.textContent = "Add transaction";
@@ -104,6 +128,7 @@ function resetModalForAdd() {
     txnType.value = "savings";
     txnCategory.value = "";
     txnDescription.value = "";
+    populateGroupSelect("");
     updateCategoryVisibility();
     clearTxnError();
 }
@@ -115,39 +140,21 @@ function openModalForEdit(row) {
     txnType.value = row.transaction_type || "savings";
     txnCategory.value = row.category || "";
     txnDescription.value = row.description || "";
+    populateGroupSelect(row.group_id || "");
     updateCategoryVisibility();
     clearTxnError();
     txnModalInstance.show();
 }
 
-function renderRows(transactions) {
-    txnTableBody.innerHTML = "";
-    transactions.forEach((row) => {
-        const amt = Number(row.amount);
-        const amtClass = amt < 0 ? "txn-amount-neg" : "txn-amount-pos";
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td>${formatDate(row.created_at)}</td>
-            <td><span class="txn-type-pill ${typeClass(row.transaction_type)}">${row.transaction_type || "—"}</span></td>
-            <td>${formatCategoryCell(row)}</td>
-            <td>${escapeHtml(row.description || "—")}</td>
-            <td class="text-end ${amtClass}">${currency(amt)}</td>
-            <td class="text-end">
-                <button type="button" class="btn btn-sm btn-outline-light me-1 txn-edit" data-id="${row.id}">Edit</button>
-                <button type="button" class="btn btn-sm btn-outline-danger txn-del" data-id="${row.id}">Delete</button>
-            </td>`;
-        txnTableBody.appendChild(tr);
-    });
-
-    txnTableBody.querySelectorAll(".txn-edit").forEach((btn) => {
+function bindTableActions(tbody, transactions) {
+    tbody.querySelectorAll(".txn-edit").forEach((btn) => {
         btn.addEventListener("click", () => {
             const id = parseInt(btn.getAttribute("data-id"), 10);
-            const row = transactions.find((t) => t.id === id);
+            const row = allLoadedTransactions.find((t) => t.id === id);
             if (row) openModalForEdit(row);
         });
     });
-
-    txnTableBody.querySelectorAll(".txn-del").forEach((btn) => {
+    tbody.querySelectorAll(".txn-del").forEach((btn) => {
         btn.addEventListener("click", async () => {
             const id = parseInt(btn.getAttribute("data-id"), 10);
             if (!Number.isFinite(id) || !window.confirm("Delete this transaction?")) return;
@@ -161,6 +168,32 @@ function renderRows(transactions) {
             await refreshList();
         });
     });
+}
+
+function renderRows(tbody, transactions, showGroup) {
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    transactions.forEach((row) => {
+        const amt = Number(row.amount);
+        const amtClass = amt < 0 ? "txn-amount-neg" : "txn-amount-pos";
+        const groupCell = showGroup
+            ? `<td><span class="txn-group-pill">${escapeHtml(row.group_name || "—")}</span></td>`
+            : "";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${formatDate(row.created_at)}</td>
+            ${groupCell}
+            <td><span class="txn-type-pill ${typeClass(row.transaction_type)}">${row.transaction_type || "—"}</span></td>
+            <td>${formatCategoryCell(row)}</td>
+            <td>${escapeHtml(row.description || "—")}</td>
+            <td class="text-end ${amtClass}">${currency(amt)}</td>
+            <td class="text-end">
+                <button type="button" class="btn btn-sm btn-outline-light me-1 txn-edit" data-id="${row.id}">Edit</button>
+                <button type="button" class="btn btn-sm btn-outline-danger txn-del" data-id="${row.id}">Delete</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+    bindTableActions(tbody, transactions);
 }
 
 function escapeHtml(s) {
@@ -178,11 +211,23 @@ async function refreshList() {
         return;
     }
     const data = await res.json();
-    const list = data.transactions || [];
+    const personal = data.transactions || [];
+    const group = data.group_transactions || [];
+    allLoadedTransactions = personal.concat(group);
     const total = data.total_balance != null ? Number(data.total_balance) : 0;
     txnTotalBalance.textContent = currency(total);
-    txnListMeta.textContent = `${list.length} entries loaded`;
-    renderRows(list);
+    const gNote = group.length ? ` · ${group.length} group` : "";
+    txnListMeta.textContent = `${personal.length} personal entries${gNote}`;
+    renderRows(txnTableBody, personal, false);
+    if (txnGroupSection && txnGroupTableBody) {
+        if (group.length) {
+            txnGroupSection.classList.remove("d-none");
+            renderRows(txnGroupTableBody, group, true);
+        } else {
+            txnGroupSection.classList.add("d-none");
+            txnGroupTableBody.innerHTML = "";
+        }
+    }
 }
 
 txnSaveBtn.addEventListener("click", async () => {
@@ -202,6 +247,10 @@ txnSaveBtn.addEventListener("click", async () => {
         description: txnDescription.value.trim() || null,
         category: txnType.value === "expense" ? (txnCategory.value || null) : null,
     };
+    if (txnGroup) {
+        const gv = txnGroup.value;
+        payload.group_id = gv ? parseInt(gv, 10) : null;
+    }
 
     const editId = txnEditId.value.trim();
     let res;
@@ -254,4 +303,4 @@ if (toggle && sidebar && overlay) {
     });
 }
 
-refreshList();
+loadUserGroups().then(refreshList);

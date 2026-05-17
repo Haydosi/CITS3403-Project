@@ -343,6 +343,8 @@ class ApiTestCase(unittest.TestCase):
         body = self.client.get("/api/private/transactions").get_json()
         self.assertEqual(len(body["transactions"]), 1)
         self.assertAlmostEqual(body["total_balance"], 100.0, places=2)
+        self.assertEqual(len(body.get("group_transactions") or []), 1)
+        self.assertAlmostEqual(body["group_transactions"][0]["amount"], 500.0, places=2)
 
     def test_dashboard_summary_excludes_group_rows(self):
         # Issue 6 regression — dashboard summary is personal-only.
