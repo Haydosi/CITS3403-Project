@@ -58,6 +58,29 @@
     border: 1px solid rgba(139, 92, 246, 0.35);
 }
 
+.grp-settings {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.grp-leaderboard-switch .form-check-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.grp-leaderboard-status {
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.grp-leaderboard-status.on {
+    color: var(--accent-teal);
+}
+
+.grp-leaderboard-status.off {
+    color: var(--text-muted);
+}
+
 .grp-body { padding: 20px; }
 
 /* ── Stat strip ───────────────────────────────────────────── */

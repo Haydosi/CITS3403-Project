@@ -256,7 +256,7 @@ function updateLastFetchedLabel() {
 
 async function fetchGroups() {
     try {
-        const res = await fetch("/api/private/me/groups");
+        const res = await fetch("/api/private/me/groups?leaderboard=1");
         if (!res.ok) return;
         const data = await res.json();
         myGroups = data.groups || [];

@@ -83,6 +83,12 @@ class Group(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     group_name = db.Column(db.String(50), nullable=False, unique=False)
+    leaderboard_enabled = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True,
+        server_default=db.text("1"),
+    )
 
     memberships = relationship(
         "UserGroupMembership",
@@ -99,6 +105,7 @@ class Group(db.Model):
         return {
             "id": self.id,
             "group_name": self.group_name,
+            "leaderboard_enabled": bool(self.leaderboard_enabled),
         }
 
 

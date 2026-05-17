@@ -346,6 +346,8 @@ class ApiTestCase(unittest.TestCase):
         body = self.client.get("/api/private/transactions").get_json()
         self.assertEqual(len(body["transactions"]), 1)
         self.assertAlmostEqual(body["total_balance"], 100.0, places=2)
+        self.assertEqual(len(body.get("group_transactions") or []), 1)
+        self.assertAlmostEqual(body["group_transactions"][0]["amount"], 500.0, places=2)
 
     def test_dashboard_summary_excludes_group_rows(self):
         # Issue 6 regression — dashboard summary is personal-only.
@@ -559,6 +561,62 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(first["description"], "Salary")
         self.assertIn("user", first)
         self.assertEqual(first["user"]["email"], "m@m.com")
+
+    def test_group_leaderboard_enabled_toggle_and_filter(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        g1 = self.client.post(
+            "/api/private/groups", json={"group_name": "Alpha"}
+        ).get_json()["group"]["id"]
+        g2 = self.client.post(
+            "/api/private/groups", json={"group_name": "Beta"}
+        ).get_json()["group"]["id"]
+
+        all_groups = self.client.get("/api/private/me/groups").get_json()["groups"]
+        self.assertEqual(len(all_groups), 2)
+
+        lb_groups = self.client.get(
+            "/api/private/me/groups?leaderboard=1"
+        ).get_json()["groups"]
+        self.assertEqual(len(lb_groups), 2)
+
+        off = self.client.patch(
+            f"/api/private/groups/{g2}",
+            json={"leaderboard_enabled": False},
+        )
+        self.assertEqual(off.status_code, 200)
+        self.assertFalse(off.get_json()["group"]["leaderboard_enabled"])
+
+        lb_groups = self.client.get(
+            "/api/private/me/groups?leaderboard=1"
+        ).get_json()["groups"]
+        self.assertEqual(len(lb_groups), 1)
+        self.assertEqual(lb_groups[0]["id"], g1)
+
+        blocked = self.client.get(f"/api/private/leaderboard/group/{g2}")
+        self.assertEqual(blocked.status_code, 403)
+
+        ok = self.client.get(f"/api/private/leaderboard/group/{g1}")
+        self.assertEqual(ok.status_code, 200)
+
+    def test_member_cannot_toggle_group_leaderboard(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Fam"}
+        ).get_json()["group"]["id"]
+        self._register_user(email="member@example.com", password="password123")
+        self._login_user(email="owner@example.com", password="password123")
+        self.client.post(
+            f"/api/private/groups/{gid}/members",
+            json={"email": "member@example.com"},
+        )
+        self._login_user(email="member@example.com", password="password123")
+        res = self.client.patch(
+            f"/api/private/groups/{gid}",
+            json={"leaderboard_enabled": False},
+        )
+        self.assertEqual(res.status_code, 403)
 
 
 if __name__ == "__main__":
