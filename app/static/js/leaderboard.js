@@ -308,7 +308,7 @@ async function fetchGroup() {
         return;
     }
     const res = await fetch(
-        `/api/private/leaderboard/family/${selectedGroupId}?window=${encodeURIComponent(activeWindow)}`,
+        `/api/private/leaderboard/group/${selectedGroupId}?window=${encodeURIComponent(activeWindow)}`,
     );
     if (!res.ok) {
         groupRows = [];

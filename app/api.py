@@ -232,8 +232,8 @@ def api_leaderboard():
     return jsonify(leaderboard=leaderboard, window=window)
 
 
-@private_api.route("/leaderboard/family/<int:group_id>", methods=["GET"])
-def api_family_leaderboard(group_id):
+@private_api.route("/leaderboard/group/<int:group_id>", methods=["GET"])
+def api_group_leaderboard(group_id):
     # Private family leaderboard endpoint - returns top savers in a specific family group.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
