@@ -208,7 +208,11 @@ def api_leaderboard():
 
     # Global leaderboard ranks users on personal-only savings — group-tagged
     # rows are scored in the family leaderboard instead (see Issue 6).
-    txn_filter = (User.id == Transaction.user_id) & (Transaction.group_id.is_(None))
+    txn_filter = (
+        (User.id == Transaction.user_id)
+        & (Transaction.group_id.is_(None))
+        & (Transaction.transaction_type == "savings")
+    )
     if cutoff is not None:
         txn_filter = txn_filter & (Transaction.created_at >= cutoff)
 
@@ -249,7 +253,11 @@ def api_group_leaderboard(group_id):
     window = (request.args.get("window") or "all").lower()
     cutoff = _window_cutoff(window)
 
-    txn_filter = (User.id == Transaction.user_id) & (Transaction.group_id == group_id)
+    txn_filter = (
+        (User.id == Transaction.user_id)
+        & (Transaction.group_id == group_id)
+        & (Transaction.transaction_type == "savings")
+    )
     if cutoff is not None:
         txn_filter = txn_filter & (Transaction.created_at >= cutoff)
 
