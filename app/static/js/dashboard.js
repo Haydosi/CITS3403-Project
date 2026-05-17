@@ -171,10 +171,10 @@ function renderExpenseChart(data) {
 function buildTxnRow(t) {
     const conf = typeConf(t.transaction_type);
     const amount = parseFloat(t.amount);
-    const isExpense = amount < 0;
+    const isExpense = t.transaction_type === 'expense';
     const formatted = isExpense
         ? `-$${Math.abs(amount).toFixed(2)}`
-        : `+$${amount.toFixed(2)}`;
+        : `${amount < 0 ? '-' : '+'}$${Math.abs(amount).toFixed(2)}`;
     const dateObj = new Date(t.created_at);
     const dateStr = dateObj.toLocaleDateString('en-AU', {day: 'numeric', month: 'short'});
 

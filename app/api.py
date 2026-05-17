@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, UTC
 
 from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
-from sqlalchemy import func
+from sqlalchemy import case, func
 from app import db
 from app.models import (
     User,
@@ -642,6 +642,29 @@ def _normalise_category(raw, tx_type):
     return value, None
 
 
+def _normalise_transaction_amount(amount, tx_type):
+    # The database invariant is: savings are positive, expenses are negative,
+    # and transfers keep their explicit sign.
+    if tx_type == "savings":
+        return abs(amount)
+    if tx_type == "expense":
+        return -abs(amount)
+    return amount
+
+
+def _net_transaction_amount_expr():
+    expense_amount = func.abs(Transaction.amount)
+    return case(
+        (Transaction.transaction_type == "expense", -expense_amount),
+        (Transaction.transaction_type == "savings", func.abs(Transaction.amount)),
+        else_=Transaction.amount,
+    )
+
+
+def _expense_amount_expr():
+    return func.abs(Transaction.amount)
+
+
 def _user_in_group(user_id, group_id):
     # True if the user belongs to the given group.
     return (
@@ -710,7 +733,9 @@ def api_transactions():
     if request.method == "GET":
         personal = _personal_tx_filters(current_user.id)
         total_balance = (
-            db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+            db.session.query(
+                func.coalesce(func.sum(_net_transaction_amount_expr()), 0)
+            )
             .filter(*personal)
             .scalar()
         )
@@ -758,6 +783,7 @@ def api_transactions():
     tx_type = (payload.get("transaction_type") or "savings").strip().lower()
     if tx_type not in ALLOWED_TRANSACTION_TYPES:
         return json_error("Invalid transaction_type", 400)
+    amount = _normalise_transaction_amount(amount, tx_type)
 
     desc = payload.get("description")
     if desc is not None:
@@ -865,8 +891,6 @@ def api_transaction_detail(transaction_id):
                 return json_error("You are not a member of that group", 403)
             new_group_id = group_id
 
-    if new_amount is not UNSET:
-        tx.amount = new_amount
     if new_description is not UNSET:
         tx.description = new_description
     if new_type is not UNSET:
@@ -874,6 +898,11 @@ def api_transaction_detail(transaction_id):
         # Category only applies to expense rows — clear it if the type changed.
         if new_type != "expense" and new_category is UNSET:
             tx.category = None
+    if new_amount is not UNSET or new_type is not UNSET:
+        effective_amount = new_amount if new_amount is not UNSET else float(tx.amount)
+        tx.amount = _normalise_transaction_amount(
+            effective_amount, tx.transaction_type
+        )
     if new_category is not UNSET:
         tx.category = new_category
     if new_group_id is not UNSET:
@@ -942,8 +971,9 @@ def _group_detail_payload(group_id, my_membership):
     )
 
     # Group-level expense totals.
+    expense_amount = _expense_amount_expr()
     total_spent = float(
-        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        db.session.query(func.coalesce(func.sum(expense_amount), 0))
         .filter(
             Transaction.group_id == group_id,
             Transaction.transaction_type == "expense",
@@ -952,7 +982,7 @@ def _group_detail_payload(group_id, my_membership):
         or 0
     )
     month_spent = float(
-        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        db.session.query(func.coalesce(func.sum(expense_amount), 0))
         .filter(
             Transaction.group_id == group_id,
             Transaction.transaction_type == "expense",
@@ -966,7 +996,7 @@ def _group_detail_payload(group_id, my_membership):
     breakdown_rows = (
         db.session.query(
             Transaction.category,
-            func.coalesce(func.sum(Transaction.amount), 0),
+            func.coalesce(func.sum(expense_amount), 0),
         )
         .filter(
             Transaction.group_id == group_id,
@@ -1043,11 +1073,12 @@ def _group_activity_series(group_id, days=30):
         days=days - 1
     )
 
-    def _by_day(tx_type):
+    def _by_day(tx_type, use_abs=False):
+        amount_expr = _expense_amount_expr() if use_abs else Transaction.amount
         rows = (
             db.session.query(
                 func.date(Transaction.created_at).label("d"),
-                func.coalesce(func.sum(Transaction.amount), 0),
+                func.coalesce(func.sum(amount_expr), 0),
             )
             .filter(
                 Transaction.group_id == group_id,
@@ -1060,7 +1091,7 @@ def _group_activity_series(group_id, days=30):
         return {str(r[0]): float(r[1] or 0) for r in rows}
 
     saved_by_day = _by_day("savings")
-    spent_by_day = _by_day("expense")
+    spent_by_day = _by_day("expense", use_abs=True)
 
     series = []
     for i in range(days):
@@ -1306,7 +1337,7 @@ def api_dashboard_summary():
     personal_only = _personal_tx_filters(current_user.id)
 
     total_balance = float(
-        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        db.session.query(func.coalesce(func.sum(_net_transaction_amount_expr()), 0))
         .filter(*personal_only)
         .scalar() or 0
     )
@@ -1321,16 +1352,15 @@ def api_dashboard_summary():
         .scalar() or 0
     )
 
-    monthly_expenses_raw = float(
-        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+    monthly_expenses = float(
+        db.session.query(func.coalesce(func.sum(_expense_amount_expr()), 0))
         .filter(
             *personal_only,
             Transaction.created_at >= month_start,
-            Transaction.amount < 0,
+            Transaction.transaction_type == "expense",
         )
         .scalar() or 0
     )
-    monthly_expenses = abs(monthly_expenses_raw)
 
     # Monthly savings = sum of explicit savings-type transactions (Issue 5).
     monthly_savings = float(
@@ -1353,7 +1383,7 @@ def api_dashboard_summary():
     breakdown_rows = (
         db.session.query(
             Transaction.category,
-            func.sum(Transaction.amount).label("total"),
+            func.sum(_expense_amount_expr()).label("total"),
         )
         .filter(
             *personal_only,
@@ -1365,7 +1395,7 @@ def api_dashboard_summary():
         .all()
     )
     expense_breakdown = [
-        {"category": category or "other", "amount": abs(float(total or 0))}
+        {"category": category or "other", "amount": float(total or 0)}
         for category, total in breakdown_rows
     ]
     breakdown_total = sum(item["amount"] for item in expense_breakdown)

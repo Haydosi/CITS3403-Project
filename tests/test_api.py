@@ -317,10 +317,10 @@ class ApiTestCase(unittest.TestCase):
             json={"amount": 100, "transaction_type": "expense"},
         )
         self.assertEqual(patched.status_code, 200)
-        self.assertAlmostEqual(patched.get_json()["transaction"]["amount"], 100.0, places=2)
+        self.assertAlmostEqual(patched.get_json()["transaction"]["amount"], -100.0, places=2)
 
         listed2 = self.client.get("/api/private/transactions")
-        self.assertAlmostEqual(listed2.get_json()["total_balance"], 100.0, places=2)
+        self.assertAlmostEqual(listed2.get_json()["total_balance"], -100.0, places=2)
 
         deleted = self.client.delete(f"/api/private/transactions/{tid}")
         self.assertEqual(deleted.status_code, 200)
@@ -344,6 +344,41 @@ class ApiTestCase(unittest.TestCase):
         return self.client.post(
             "/api/private/groups", json={"group_name": name}
         ).get_json()["group"]["id"]
+
+    def test_transaction_amount_signs_are_normalised_by_type(self):
+        self._register_user()
+        self._login_user()
+
+        expense = self.client.post(
+            "/api/private/transactions",
+            json={
+                "amount": 25,
+                "transaction_type": "expense",
+                "category": "food",
+            },
+        )
+        self.assertEqual(expense.status_code, 201, expense.get_json())
+        self.assertAlmostEqual(
+            expense.get_json()["transaction"]["amount"], -25.0, places=2
+        )
+
+        savings = self.client.post(
+            "/api/private/transactions",
+            json={"amount": -40, "transaction_type": "savings"},
+        )
+        self.assertEqual(savings.status_code, 201, savings.get_json())
+        self.assertAlmostEqual(
+            savings.get_json()["transaction"]["amount"], 40.0, places=2
+        )
+
+        transfer = self.client.post(
+            "/api/private/transactions",
+            json={"amount": -10, "transaction_type": "transfer"},
+        )
+        self.assertEqual(transfer.status_code, 201, transfer.get_json())
+        self.assertAlmostEqual(
+            transfer.get_json()["transaction"]["amount"], -10.0, places=2
+        )
 
     def test_category_rejected_for_non_expense(self):
         # Issue 2 regression — category is only valid on expense rows.
