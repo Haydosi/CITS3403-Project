@@ -181,9 +181,11 @@ def api_user_detail(user_id):
 
 @private_api.route("/dashboard", methods=["GET"])
 def api_dashboard():
-    # Private dashboard summary endpoint.
+    # Admin-only dashboard summary endpoint.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
+    if current_user.role != "admin":
+        return json_error("Forbidden", 403)
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
     latest_users = [u.to_dict() for u in User.query.order_by(User.created_at.desc()).limit(5).all()]
@@ -901,7 +903,6 @@ def _user_public_summary(u):
     return {
         "id": u.id,
         "username": u.username,
-        "email": u.email,
         "first_name": u.first_name,
         "last_name": u.last_name,
     }
