@@ -259,7 +259,7 @@ function updateLastFetchedLabel() {
 async function fetchServerTime() {
     if (!lbServerTimeLabel) return;
     try {
-        const res = await fetch("/api/private/time");
+        const res = await fetch("/api/private/ajax_current_time");
         if (!res.ok) {
             lbServerTimeLabel.textContent = "Time unavailable";
             return;

@@ -186,6 +186,17 @@ def api_dashboard():
     return jsonify(total_users=total_users, active_users=active_users, latest_users=latest_users)
 
 
+@private_api.route("/ajax_current_time", methods=["GET"])
+def api_ajax_current_time():
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    now = datetime.now(UTC)
+    return jsonify(
+        iso=now.isoformat(),
+        formatted=now.strftime("%d %b %Y, %H:%M:%S UTC"),
+    )
+
+
 def _window_cutoff(raw):
     # Map ?window= values to a datetime cutoff (or None for all-time).
     value = (raw or "all").lower()
