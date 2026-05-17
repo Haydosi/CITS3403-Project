@@ -61,15 +61,11 @@ function getCurrentUserId() {
 }
 
 function displayName(p) {
-    if (p.first_name || p.last_name) return `${p.first_name || ""} ${p.last_name || ""}`.trim();
-    return p.username || p.email || "Anonymous";
+    return p.username || "Anonymous";
 }
 
 function initials(p) {
-    const n = displayName(p);
-    const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-    return n.substring(0, 2).toUpperCase();
+    return displayName(p).substring(0, 2).toUpperCase();
 }
 
 function escapeHtml(s) {
@@ -113,7 +109,6 @@ function renderPodium(rows) {
             <div class="lb-rank-badge"><i class="bi ${icons[visIdx]} lb-rank-icon"></i>${rank}</div>
             <div class="lb-avatar">${escapeHtml(initials(p))}</div>
             <div class="lb-name">${escapeHtml(displayName(p))}${isMe ? ' <span class="text-muted small">(you)</span>' : ""}</div>
-            <div class="lb-sub">${escapeHtml(p.email || "")}</div>
             <div class="lb-amount">${currency(p.total_saved)}</div>
             <div class="lb-delta">${delta}</div>
         `;
@@ -142,10 +137,7 @@ function renderGlobalTable(rows) {
             <td>
                 <div class="leader-name-wrap">
                     <div class="user-avatar">${escapeHtml(initials(p))}</div>
-                    <div>
-                        <div>${escapeHtml(displayName(p))}${isMe ? ' <span class="text-muted small">(you)</span>' : ""}</div>
-                        <div class="text-secondary small">${escapeHtml(p.email || "")}</div>
-                    </div>
+                    <div>${escapeHtml(displayName(p))}${isMe ? ' <span class="text-muted small">(you)</span>' : ""}</div>
                 </div>
             </td>
             <td class="text-end lb-amount-cell">${currency(p.total_saved)}</td>

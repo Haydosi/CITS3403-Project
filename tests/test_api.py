@@ -23,12 +23,15 @@ class ApiTestCase(unittest.TestCase):
             db.session.remove()
             db.drop_all()
 
-    def _register_user(self, email="user@example.com", password="password123"):
+    def _register_user(self, email="user@example.com", password="password123", username=None):
         # Helper to register a user using the public API endpoint.
+        if username is None:
+            username = email.replace("@", "_").replace(".", "")
         return self.client.post(
             "/api/public/auth/register",
             json={
                 "email": email,
+                "username": username,
                 "password": password,
                 "confirm_password": password,
             },
@@ -449,7 +452,7 @@ class ApiTestCase(unittest.TestCase):
         # Owner is the only user with rows; total should ignore the group row.
         me = next(
             row for row in body["leaderboard"]
-            if row["email"] == "user@example.com"
+            if row["username"] == "user_examplecom"
         )
         self.assertAlmostEqual(float(me["total_saved"]), 100.0, places=2)
 

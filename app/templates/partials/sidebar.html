@@ -18,10 +18,6 @@
             class="nav-link {{ 'active' if request.endpoint == 'main.transactions' else '' }}">
             <i class="bi bi-wallet2"></i> Transactions
         </a>
-        <a href="{{ url_for('main.dashboard') }}#savings-targets"
-            class="nav-link">
-            <i class="bi bi-bullseye"></i> Targets
-        </a>
         <div class="nav-section-label">Social</div>
         <a href="{{ url_for('main.leaderboard') }}"
             class="nav-link {{ 'active' if request.endpoint == 'main.leaderboard' else '' }}">

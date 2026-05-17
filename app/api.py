@@ -117,16 +117,21 @@ def api_register():
         return error
 
     email = payload.get("email")
+    username = (payload.get("username") or "").strip()
     password = payload.get("password")
     confirm_password = payload.get("confirm_password")
-    if not email or not password or not confirm_password:
-        return json_error("Email, password and confirm_password are required", 400)
+    if not email or not username or not password or not confirm_password:
+        return json_error("Email, username, password and confirm_password are required", 400)
+    if len(username) < 3 or len(username) > 50:
+        return json_error("Username must be between 3 and 50 characters", 400)
     if password != confirm_password:
         return json_error("Passwords must match", 400)
     if User.query.filter_by(email=email).first():
         return json_error("An account with that email already exists", 409)
+    if User.query.filter_by(username=username).first():
+        return json_error("That username is already taken", 409)
 
-    user = User(email=email, username=email)
+    user = User(email=email, username=username)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -210,22 +215,16 @@ def api_leaderboard():
     leaderboard_query = db.session.query(
         User.id,
         User.username,
-        User.email,
-        User.first_name,
-        User.last_name,
         func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
     ).outerjoin(Transaction, txn_filter).group_by(User.id).order_by(
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     ).limit(50)
 
     leaderboard = []
-    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+    for user_id, username, total_saved in leaderboard_query:
         leaderboard.append({
             "id": user_id,
             "username": username,
-            "email": email,
-            "first_name": first_name,
-            "last_name": last_name,
             "total_saved": float(total_saved) if total_saved else 0,
         })
 
@@ -249,9 +248,6 @@ def api_group_leaderboard(group_id):
     leaderboard_query = db.session.query(
         User.id,
         User.username,
-        User.email,
-        User.first_name,
-        User.last_name,
         func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
     ).join(
         UserGroupMembership, User.id == UserGroupMembership.user_id
@@ -259,10 +255,7 @@ def api_group_leaderboard(group_id):
         UserGroupMembership.group_id == group_id
     ).outerjoin(Transaction, txn_filter).group_by(
         User.id,
-        User.username,
-        User.email,
-        User.first_name,
-        User.last_name
+        User.username
     ).order_by(
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     )
@@ -590,14 +583,11 @@ def api_debt_loan_sooner():
 def _family_leaderboard_payload(leaderboard_query):
     # Build JSON rows for the family leaderboard query (user + totals per group).
     rows = []
-    for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
+    for user_id, username, total_saved in leaderboard_query:
         rows.append(
             {
                 "id": user_id,
                 "username": username,
-                "email": email,
-                "first_name": first_name,
-                "last_name": last_name,
                 "total_saved": float(total_saved) if total_saved else 0,
             }
         )

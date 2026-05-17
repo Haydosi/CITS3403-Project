@@ -19,6 +19,18 @@ LAST_NAMES = [
     "Davis", "Wilson", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris",
 ]
 
+# Used to build display usernames that do NOT leak the seeded real names
+# or emails. Pairs an adjective with an animal and a number suffix.
+HANDLE_ADJECTIVES = [
+    "frugal", "thrifty", "swift", "bright", "quiet", "bold", "gentle",
+    "cosmic", "lucky", "sunny", "happy", "clever", "calm", "brave", "mellow",
+]
+
+HANDLE_ANIMALS = [
+    "panda", "otter", "falcon", "koala", "wolf", "fox", "lynx", "tiger",
+    "eagle", "puffin", "shark", "owl", "raven", "bison", "dolphin",
+]
+
 EXPENSE_DESCS = [
     "Groceries", "Rent", "Electricity bill", "Internet", "Coffee",
     "Dining out", "Petrol", "Gym membership", "Streaming service", "Phone bill",
@@ -107,19 +119,26 @@ def seed_db():
     db.session.add(test_user)
     db.session.flush()
 
-    # Random users
+    # Random users. Usernames are intentionally generated independently of
+    # the real first/last name so the leaderboard never reveals PII.
     users = [test_user]
-    used = {("Test", "User")}
+    used_names = {("Test", "User")}
+    used_usernames = {"testuser"}
     for _ in range(20):
         while True:
             first = random.choice(FIRST_NAMES)
             last = random.choice(LAST_NAMES)
-            if (first, last) not in used:
-                used.add((first, last))
+            if (first, last) not in used_names:
+                used_names.add((first, last))
+                break
+        while True:
+            handle = f"{random.choice(HANDLE_ADJECTIVES)}{random.choice(HANDLE_ANIMALS)}{random.randint(1, 999)}"
+            if handle not in used_usernames:
+                used_usernames.add(handle)
                 break
         n = random.randint(1, 99)
         u = User(
-            username=f"{first.lower()}{last.lower()}{n}",
+            username=handle,
             email=f"{first.lower()}.{last.lower()}{n}@example.com",
             first_name=first,
             last_name=last,

@@ -94,8 +94,9 @@ class SavingsTargetApiTest(unittest.TestCase):
             db.drop_all()
 
     def _register_and_login(self, email="user@example.com", password="password123"):
+        username = email.replace("@", "_").replace(".", "")
         self.client.post("/api/public/auth/register", json={
-            "email": email, "password": password, "confirm_password": password,
+            "email": email, "username": username, "password": password, "confirm_password": password,
         })
         self.client.post("/api/public/auth/login", json={
             "email": email, "password": password,
