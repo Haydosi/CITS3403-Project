@@ -157,18 +157,22 @@ def api_current_user():
 
 @private_api.route("/users", methods=["GET"])
 def api_users():
-    # Private endpoint to list all users.
+    # Admin-only endpoint to list all users.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
+    if current_user.role != "admin":
+        return json_error("Forbidden", 403)
     users = User.query.order_by(User.id.asc()).all()
     return jsonify(users=[user.to_dict() for user in users])
 
 
 @private_api.route("/users/<int:user_id>", methods=["GET"])
 def api_user_detail(user_id):
-    # Private endpoint to return a single user by id.
+    # Returns a user's details; only accessible by the user themselves or an admin.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
+    if current_user.id != user_id and current_user.role != "admin":
+        return json_error("Forbidden", 403)
     user = User.query.get(user_id)
     if user is None:
         return json_error("User not found", 404)
@@ -177,9 +181,11 @@ def api_user_detail(user_id):
 
 @private_api.route("/dashboard", methods=["GET"])
 def api_dashboard():
-    # Private dashboard summary endpoint.
+    # Admin-only dashboard summary endpoint.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
+    if current_user.role != "admin":
+        return json_error("Forbidden", 403)
     total_users = User.query.count()
     active_users = User.query.filter_by(is_active=True).count()
     latest_users = [u.to_dict() for u in User.query.order_by(User.created_at.desc()).limit(5).all()]
@@ -937,7 +943,6 @@ def _user_public_summary(u):
     return {
         "id": u.id,
         "username": u.username,
-        "email": u.email,
         "first_name": u.first_name,
         "last_name": u.last_name,
     }

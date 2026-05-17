@@ -200,7 +200,7 @@ class ApiTestCase(unittest.TestCase):
         self.client.post(f"/api/private/groups/{gid}/members", json={"email": "m@m.com"})
         lst = self.client.get("/api/private/groups").get_json()
         members = lst["groups"][0]["members"]
-        mid = next(m["id"] for m in members if m["email"] == "m@m.com")
+        mid = next(m["id"] for m in members if m["username"] == "m_mcom")
         rem = self.client.delete(f"/api/private/groups/{gid}/members/{mid}")
         self.assertEqual(rem.status_code, 200)
         lst2 = self.client.get("/api/private/groups").get_json()
@@ -700,7 +700,7 @@ class ApiTestCase(unittest.TestCase):
         self.assertEqual(first["transaction_type"], "savings")
         self.assertEqual(first["description"], "Salary")
         self.assertIn("user", first)
-        self.assertEqual(first["user"]["email"], "m@m.com")
+        self.assertEqual(first["user"]["username"], "m_mcom")
 
     def test_group_leaderboard_enabled_toggle_and_filter(self):
         self._register_user(email="owner@example.com")
