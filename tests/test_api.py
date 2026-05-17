@@ -219,7 +219,7 @@ class ApiTestCase(unittest.TestCase):
             json={"email": "member@example.com"},
         )
         members = self.client.get("/api/private/groups").get_json()["groups"][0]["members"]
-        member_id = next(m["id"] for m in members if m["email"] == "member@example.com")
+        member_id = next(m["id"] for m in members if m["username"] == "member_examplecom")
 
         res = self.client.patch(
             f"/api/private/groups/{gid}/members/{member_id}",
@@ -245,8 +245,8 @@ class ApiTestCase(unittest.TestCase):
             json={"email": "member@example.com"},
         )
         members = self.client.get("/api/private/groups").get_json()["groups"][0]["members"]
-        owner_id = next(m["id"] for m in members if m["email"] == "owner@example.com")
-        member_id = next(m["id"] for m in members if m["email"] == "member@example.com")
+        owner_id = next(m["id"] for m in members if m["username"] == "owner_examplecom")
+        member_id = next(m["id"] for m in members if m["username"] == "member_examplecom")
 
         res = self.client.patch(
             f"/api/private/groups/{gid}/members/{member_id}",
@@ -274,7 +274,7 @@ class ApiTestCase(unittest.TestCase):
             json={"email": "member@example.com"},
         )
         members = self.client.get("/api/private/groups").get_json()["groups"][0]["members"]
-        owner_id = next(m["id"] for m in members if m["email"] == "owner@example.com")
+        owner_id = next(m["id"] for m in members if m["username"] == "owner_examplecom")
 
         self._login_user(email="member@example.com", password="password123")
         res = self.client.patch(
