@@ -1,12 +1,10 @@
 import os
 import random
-import string
 from datetime import datetime, timedelta, UTC, date
 
 from app import db
 from app.models import (
     User, Group, UserGroupMembership, GroupRole, Transaction,
-    FamilyGroup, FamilyMember, FamilyTransaction, FamilyGoal,
     SavingsTarget,
 )
 
@@ -54,15 +52,6 @@ GROUP_NAMES = [
     "The Frugal Five", "Perth Savers", "Budget Buddies", "Money Mindful", "Savings Squad",
 ]
 
-GOAL_OPTIONS = [
-    ("Holiday Fund", 3000, 8000),
-    ("New Car", 8000, 25000),
-    ("Emergency Fund", 2000, 10000),
-    ("Home Deposit", 15000, 50000),
-    ("Christmas Fund", 500, 2000),
-    ("Laptop Upgrade", 800, 2500),
-]
-
 # (name, emoji, target_amount, exact_current_for_test_user, days_until_deadline)
 TARGET_OPTIONS = [
     ("Summer Trip", "✈️", 2000, 1400, 60),
@@ -98,10 +87,6 @@ def _recent_dt(days_back):
         days=random.uniform(0, days_back),
         seconds=random.randint(0, 86399),
     )
-
-
-def _family_code():
-    return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
 TEST_EMAIL = "test@example.com"
@@ -280,71 +265,29 @@ def seed_db():
 
     db.session.flush()
 
-    # --- Pass 2: FamilyGroups, FamilyMembers, FamilyTransactions, FamilyGoals ---
+    # Seed a handful of group-tagged expense rows so the Groups page exercises
+    # the savings/spent/breakdown stats with real data.
+    GROUP_EXPENSE_SAMPLES = [
+        ("Groceries", "groceries", 45.0, 95.0),
+        ("Pizza night", "food", 25.0, 60.0),
+        ("Uber to airport", "transport", 30.0, 80.0),
+        ("Power bill", "utilities", 80.0, 200.0),
+        ("Movie tickets", "entertainment", 20.0, 50.0),
+    ]
     for group, members in group_records:
-        owner = members[0]
-
-        fg = FamilyGroup(
-            global_group_id=group.id,
-            group_name=group.group_name,
-            owner_id=owner.id,
-            family_code=_family_code(),
-            member_count=len(members),
-        )
-        db.session.add(fg)
-        db.session.flush()
-
-        family_members = []
-        for user in members:
-            total = (
-                db.session.query(db.func.sum(Transaction.amount))
-                .filter(Transaction.user_id == user.id, Transaction.amount > 0)
-                .scalar()
-            ) or 0.0
-
-            fm = FamilyMember(
-                family_group_id=fg.id,
-                global_user_id=user.id,
-                first_name=user.first_name,
-                last_name=user.last_name,
-                email=user.email,
-                total_savings=round(total, 2),
-            )
-            db.session.add(fm)
-            family_members.append((user, fm))
-
-        db.session.flush()
-
-        group_total = sum(fm.total_savings for _, fm in family_members)
-        fg.total_savings = round(group_total, 2)
-        for _, fm in family_members:
-            fm.contribution_percentage = round(
-                (fm.total_savings / group_total * 100) if group_total > 0 else 0, 2
-            )
-
-        db.session.flush()
-
-        for user, fm in family_members:
-            for tx in Transaction.query.filter_by(user_id=user.id).limit(10).all():
-                db.session.add(FamilyTransaction(
-                    family_group_id=fg.id,
-                    family_member_id=fm.id,
-                    amount=tx.amount,
-                    description=tx.description,
-                    transaction_type=tx.transaction_type,
-                    recorded_at=tx.created_at,
-                ))
-
-        for goal_name, lo, hi in random.sample(GOAL_OPTIONS, random.randint(1, 2)):
-            target = round(random.uniform(lo, hi), 2)
-            current = round(random.uniform(0, target), 2)
-            db.session.add(FamilyGoal(
-                family_group_id=fg.id,
-                goal_name=goal_name,
-                target_amount=target,
-                current_amount=current,
-                deadline=date.today() + timedelta(days=random.randint(30, 365)),
-                status="completed" if current >= target else "active",
+        # ~3 group expenses per group, paid by random members.
+        for _ in range(3):
+            desc, cat, lo, hi = random.choice(GROUP_EXPENSE_SAMPLES)
+            payer = random.choice(members)
+            db.session.add(Transaction(
+                user_id=payer.id,
+                group_id=group.id,
+                amount=round(random.uniform(lo, hi), 2),
+                description=desc,
+                transaction_type="expense",
+                category=cat,
+                created_at=_recent_dt(30),
+                updated_at=_recent_dt(30),
             ))
 
     db.session.commit()
