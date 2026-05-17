@@ -1207,6 +1207,45 @@ def api_group_add_member(group_id):
     return jsonify(group=_group_detail_payload(group_id, actor)), 201
 
 
+@private_api.route("/groups/<int:group_id>/members/<int:user_id>", methods=["PATCH"])
+def api_group_update_member_role(group_id, user_id):
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    actor = _membership(current_user.id, group_id)
+    target = _membership(user_id, group_id)
+    if actor is None:
+        return json_error("Not a member of this group", 403)
+    if actor.user_role != GroupRole.OWNER:
+        return json_error("Only owners can change member roles", 403)
+    if target is None:
+        return json_error("Target is not a member of this group", 404)
+
+    payload, error = require_json_payload()
+    if error:
+        return error
+
+    raw_role = payload.get("user_role")
+    try:
+        new_role = GroupRole(str(raw_role).strip().lower())
+    except (TypeError, ValueError):
+        return json_error("user_role must be one of: member, admin, owner", 400)
+
+    if target.user_role == GroupRole.OWNER and new_role != GroupRole.OWNER:
+        owner_count = UserGroupMembership.query.filter_by(
+            group_id=group_id,
+            user_role=GroupRole.OWNER,
+        ).count()
+        if owner_count <= 1:
+            return json_error("A group must have at least one owner", 400)
+
+    if new_role == GroupRole.OWNER and target.user_role != GroupRole.OWNER:
+        actor.user_role = GroupRole.ADMIN
+
+    target.user_role = new_role
+    db.session.commit()
+    return jsonify(group=_group_detail_payload(group_id, actor))
+
+
 @private_api.route("/groups/<int:group_id>/members/<int:user_id>", methods=["DELETE"])
 def api_group_remove_member(group_id, user_id):
     if not current_user.is_authenticated:

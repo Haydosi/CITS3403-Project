@@ -84,6 +84,10 @@ function canRename(role) {
     return role === "owner" || role === "admin";
 }
 
+function canManageRoles(role) {
+    return role === "owner";
+}
+
 function displayName(m) {
     if (m.first_name || m.last_name) {
         return `${m.first_name || ""} ${m.last_name || ""}`.trim();
@@ -150,6 +154,9 @@ function memberRows(g, myRole) {
     return (g.members || [])
         .map((m) => {
             const isMe = document.body.getAttribute("data-user-id") === String(m.id);
+            const roleActions = canManageRoles(myRole)
+                ? ["member", "admin", "owner"].filter((role) => role !== m.user_role)
+                : [];
             const removeOthers =
                 canInvite(myRole) &&
                 !isMe &&
@@ -158,16 +165,28 @@ function memberRows(g, myRole) {
             const sharePct = Number(m.share_pct || 0);
 
             let actionsHtml = "";
-            if (removeOthers || removeSelf) {
+            if (roleActions.length || removeOthers || removeSelf) {
+                const roleItems = roleActions.map((role) => `
+                            <li><button type="button" class="dropdown-item grp-role-change" data-gid="${g.id}" data-uid="${m.id}" data-role="${role}">
+                                <i class="bi bi-shield-check me-2"></i>Make ${role}
+                            </button></li>`).join("");
+                const removeItem = (removeOthers || removeSelf)
+                    ? `<li><button type="button" class="dropdown-item text-danger grp-remove" data-gid="${g.id}" data-uid="${m.id}">
+                                <i class="bi bi-${removeSelf ? "box-arrow-right" : "person-dash"} me-2"></i>${removeSelf ? "Leave group" : "Remove member"}
+                            </button></li>`
+                    : "";
+                const divider = roleItems && (removeOthers || removeSelf)
+                    ? '<li><hr class="dropdown-divider"></li>'
+                    : "";
                 actionsHtml = `
                     <div class="dropdown grp-row-menu">
                         <button type="button" class="btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Member actions">
                             <i class="bi bi-three-dots"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><button type="button" class="dropdown-item text-danger grp-remove" data-gid="${g.id}" data-uid="${m.id}">
-                                <i class="bi bi-${removeSelf ? "box-arrow-right" : "person-dash"} me-2"></i>${removeSelf ? "Leave group" : "Remove member"}
-                            </button></li>
+                            ${roleItems}
+                            ${divider}
+                            ${removeItem}
                         </ul>
                     </div>`;
             }
@@ -381,6 +400,29 @@ function render() {
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 showErr(err.error || "Could not update membership.");
+                return;
+            }
+            await loadGroups();
+        });
+    });
+
+    groupsList.querySelectorAll(".grp-role-change").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+            const gid = btn.getAttribute("data-gid");
+            const uid = btn.getAttribute("data-uid");
+            const role = btn.getAttribute("data-role");
+            if (role === "owner" && !window.confirm("Transfer ownership to this member? You will become an admin.")) {
+                return;
+            }
+            clearErr();
+            const res = await fetch(`/api/private/groups/${gid}/members/${uid}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_role: role }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                showErr(err.error || "Could not update member role.");
                 return;
             }
             await loadGroups();

@@ -192,6 +192,97 @@ class ApiTestCase(unittest.TestCase):
         lst2 = self.client.get("/api/private/groups").get_json()
         self.assertEqual(len(lst2["groups"][0]["members"]), 1)
 
+    def test_owner_changes_group_member_role(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Roles"}
+        ).get_json()["group"]["id"]
+        self._register_user(email="member@example.com", password="password123")
+        self._login_user(email="owner@example.com", password="password123")
+        self.client.post(
+            f"/api/private/groups/{gid}/members",
+            json={"email": "member@example.com"},
+        )
+        members = self.client.get("/api/private/groups").get_json()["groups"][0]["members"]
+        member_id = next(m["id"] for m in members if m["email"] == "member@example.com")
+
+        res = self.client.patch(
+            f"/api/private/groups/{gid}/members/{member_id}",
+            json={"user_role": "admin"},
+        )
+        self.assertEqual(res.status_code, 200, res.get_json())
+        updated = res.get_json()["group"]["members"]
+        self.assertEqual(
+            next(m["user_role"] for m in updated if m["id"] == member_id),
+            "admin",
+        )
+
+    def test_transferring_group_owner_demotes_previous_owner(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Roles"}
+        ).get_json()["group"]["id"]
+        self._register_user(email="member@example.com", password="password123")
+        self._login_user(email="owner@example.com", password="password123")
+        self.client.post(
+            f"/api/private/groups/{gid}/members",
+            json={"email": "member@example.com"},
+        )
+        members = self.client.get("/api/private/groups").get_json()["groups"][0]["members"]
+        owner_id = next(m["id"] for m in members if m["email"] == "owner@example.com")
+        member_id = next(m["id"] for m in members if m["email"] == "member@example.com")
+
+        res = self.client.patch(
+            f"/api/private/groups/{gid}/members/{member_id}",
+            json={"user_role": "owner"},
+        )
+        self.assertEqual(res.status_code, 200, res.get_json())
+        roles = {
+            m["id"]: m["user_role"]
+            for m in res.get_json()["group"]["members"]
+        }
+        self.assertEqual(roles[member_id], "owner")
+        self.assertEqual(roles[owner_id], "admin")
+        self.assertEqual(list(roles.values()).count("owner"), 1)
+
+    def test_only_owner_can_change_group_member_role(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Roles"}
+        ).get_json()["group"]["id"]
+        self._register_user(email="member@example.com", password="password123")
+        self._login_user(email="owner@example.com", password="password123")
+        self.client.post(
+            f"/api/private/groups/{gid}/members",
+            json={"email": "member@example.com"},
+        )
+        members = self.client.get("/api/private/groups").get_json()["groups"][0]["members"]
+        owner_id = next(m["id"] for m in members if m["email"] == "owner@example.com")
+
+        self._login_user(email="member@example.com", password="password123")
+        res = self.client.patch(
+            f"/api/private/groups/{gid}/members/{owner_id}",
+            json={"user_role": "member"},
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_cannot_demote_last_group_owner(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        group = self.client.post(
+            "/api/private/groups", json={"group_name": "Roles"}
+        ).get_json()["group"]
+        owner_id = group["members"][0]["id"]
+
+        res = self.client.patch(
+            f"/api/private/groups/{group['id']}/members/{owner_id}",
+            json={"user_role": "member"},
+        )
+        self.assertEqual(res.status_code, 400)
+
     def test_transactions_list_requires_auth(self):
         response = self.client.get("/api/private/transactions")
         self.assertEqual(response.status_code, 401)
