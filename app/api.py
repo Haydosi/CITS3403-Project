@@ -8,13 +8,10 @@ from app import db
 from app.models import (
     User,
     Transaction,
-    FamilyMember,
-    FamilyTransaction,
     UserGroupMembership,
     Group,
     GroupRole,
-    FamilyGroup,
-    SavingsTarget
+    SavingsTarget,
 )
 
 # Public API routes are intended for external or unauthenticated clients.
@@ -983,8 +980,6 @@ def _promote_next_owner(group_id, leaving_user_id):
 
 def _maybe_prune_empty_group(group_id):
     if UserGroupMembership.query.filter_by(group_id=group_id).count() > 0:
-        return
-    if FamilyGroup.query.filter_by(global_group_id=group_id).first() is not None:
         return
     Transaction.query.filter_by(group_id=group_id).update(
         {Transaction.group_id: None}, synchronize_session=False
