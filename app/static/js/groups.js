@@ -73,6 +73,16 @@ function render() {
             canRename(myRole)
                 ? `<button type="button" class="btn btn-sm btn-outline-light grp-rename" data-id="${g.id}">Rename</button>`
                 : "";
+        const lbEnabled = g.leaderboard_enabled !== false;
+        const leaderboardToggle =
+            canRename(myRole)
+                ? `<div class="form-check form-switch grp-leaderboard-switch mb-0">
+                    <input class="form-check-input grp-leaderboard-toggle" type="checkbox" role="switch"
+                        id="grpLb-${g.id}" data-id="${g.id}" ${lbEnabled ? "checked" : ""}
+                        aria-label="Show ${escapeHtml(g.group_name)} on leaderboard">
+                    <label class="form-check-label" for="grpLb-${g.id}">Show on leaderboard</label>
+                   </div>`
+                : `<span class="grp-leaderboard-status ${lbEnabled ? "on" : "off"}">${lbEnabled ? "On leaderboard" : "Hidden from leaderboard"}</span>`;
 
         const rows = (g.members || [])
             .map((m) => {
@@ -105,6 +115,9 @@ function render() {
                     ${renameBtn}
                     ${inviteBtn}
                 </div>
+            </div>
+            <div class="grp-settings">
+                ${leaderboardToggle}
             </div>
             <div class="grp-body">
                 <div class="table-responsive">
@@ -141,6 +154,26 @@ function render() {
             renameGroupName.value = g ? g.group_name : "";
             clearErr();
             renameModalInst.show();
+        });
+    });
+
+    groupsList.querySelectorAll(".grp-leaderboard-toggle").forEach((input) => {
+        input.addEventListener("change", async () => {
+            const gid = input.getAttribute("data-id");
+            const enabled = input.checked;
+            clearErr();
+            const res = await fetch(`/api/private/groups/${gid}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ leaderboard_enabled: enabled }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                showErr(err.error || "Could not update leaderboard setting.");
+                input.checked = !enabled;
+                return;
+            }
+            await loadGroups();
         });
     });
 

@@ -225,7 +225,16 @@ def api_family_leaderboard(group_id):
     # Private family leaderboard endpoint - returns top savers in a specific family group.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-    
+
+    if not _user_in_group(current_user.id, group_id):
+        return json_error("You are not a member of that group", 403)
+
+    group = Group.query.get(group_id)
+    if group is None:
+        return json_error("Group not found", 404)
+    if not group.leaderboard_enabled:
+        return json_error("Leaderboard is disabled for this group", 403)
+
     # Query to calculate total savings per user in a specific group
     # Include all group members, even if they have no transactions in that group.
     leaderboard_query = db.session.query(
@@ -624,14 +633,15 @@ def api_my_groups():
     # Groups the current user belongs to (for transaction forms).
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-    groups = (
+    q = (
         Group.query.join(
             UserGroupMembership, UserGroupMembership.group_id == Group.id
         )
         .filter(UserGroupMembership.user_id == current_user.id)
-        .order_by(Group.group_name.asc())
-        .all()
     )
+    if request.args.get("leaderboard") in ("1", "true", "yes"):
+        q = q.filter(Group.leaderboard_enabled.is_(True))
+    groups = q.order_by(Group.group_name.asc()).all()
     return jsonify(groups=[g.to_dict() for g in groups])
 
 
@@ -921,19 +931,38 @@ def api_group_rename(group_id):
     actor = _membership(current_user.id, group_id)
     if actor is None:
         return json_error("Not a member of this group", 403)
-    if actor.user_role not in (GroupRole.OWNER, GroupRole.ADMIN):
-        return json_error("Only owners and admins can rename the group", 403)
 
     payload, error = require_json_payload()
     if error:
         return error
-    raw_name = payload.get("group_name")
-    if raw_name is None or not str(raw_name).strip():
-        return json_error("group_name is required", 400)
+
+    has_name = "group_name" in payload
+    has_leaderboard = "leaderboard_enabled" in payload
+    if not has_name and not has_leaderboard:
+        return json_error("No updates provided", 400)
+
     g = Group.query.get(group_id)
     if g is None:
         return json_error("Group not found", 404)
-    g.group_name = str(raw_name).strip()[:50]
+
+    if has_name:
+        if actor.user_role not in (GroupRole.OWNER, GroupRole.ADMIN):
+            return json_error("Only owners and admins can rename the group", 403)
+        raw_name = payload.get("group_name")
+        if raw_name is None or not str(raw_name).strip():
+            return json_error("group_name is required", 400)
+        g.group_name = str(raw_name).strip()[:50]
+
+    if has_leaderboard:
+        if actor.user_role not in (GroupRole.OWNER, GroupRole.ADMIN):
+            return json_error(
+                "Only owners and admins can change leaderboard settings", 403
+            )
+        enabled = payload.get("leaderboard_enabled")
+        if not isinstance(enabled, bool):
+            return json_error("leaderboard_enabled must be a boolean", 400)
+        g.leaderboard_enabled = enabled
+
     db.session.commit()
     return jsonify(group=_group_detail_payload(group_id, actor))
 
