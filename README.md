@@ -56,6 +56,8 @@ flask --app mymoney db upgrade
 to update the database
 
 You also need to run this when pulling changed migrations
+and by extension run it the first time you pull/clone the
+project 
 (since the database is in .gitignore)
 
 
