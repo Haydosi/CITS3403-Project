@@ -453,6 +453,40 @@ class ApiTestCase(unittest.TestCase):
         )
         self.assertAlmostEqual(float(me["total_saved"]), 100.0, places=2)
 
+    def test_group_detail_payload_includes_expense_stats(self):
+        self._register_user(email="owner@example.com")
+        self._login_user(email="owner@example.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Pot"}
+        ).get_json()["group"]["id"]
+
+        # Two savings (owner only) and two expenses across categories.
+        self.client.post("/api/private/transactions", json={
+            "amount": 100, "transaction_type": "savings", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 50, "transaction_type": "savings", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 30, "transaction_type": "expense", "category": "food",
+            "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 20, "transaction_type": "expense", "category": "transport",
+            "group_id": gid,
+        })
+
+        body = self.client.get("/api/private/groups").get_json()
+        g = body["groups"][0]
+        self.assertAlmostEqual(g["total_saved"], 150.0, places=2)
+        self.assertAlmostEqual(g["total_spent"], 50.0, places=2)
+        self.assertAlmostEqual(g["net_balance"], 100.0, places=2)
+        self.assertAlmostEqual(g["month_saved"], 150.0, places=2)
+        self.assertAlmostEqual(g["month_spent"], 50.0, places=2)
+        breakdown = {row["category"]: row["amount"] for row in g["expense_breakdown"]}
+        self.assertAlmostEqual(breakdown["food"], 30.0, places=2)
+        self.assertAlmostEqual(breakdown["transport"], 20.0, places=2)
+
 
 if __name__ == "__main__":
     unittest.main()

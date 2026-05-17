@@ -864,34 +864,81 @@ def _group_detail_payload(group_id, my_membership):
         UserGroupMembership.id.asc()
     ).all()
 
-    # Aggregate group-tagged savings per user in this group.
-    totals_by_user = dict(
-        db.session.query(
-            Transaction.user_id,
-            func.coalesce(func.sum(Transaction.amount), 0),
-        )
-        .filter(Transaction.group_id == group_id)
-        .group_by(Transaction.user_id)
-        .all()
-    )
-
     now = datetime.now(UTC)
     month_start = datetime(now.year, now.month, 1, tzinfo=UTC)
-    month_totals_by_user = dict(
+
+    # Per-user savings totals (used for member contribution + top_contributor).
+    savings_by_user = dict(
         db.session.query(
             Transaction.user_id,
             func.coalesce(func.sum(Transaction.amount), 0),
         )
         .filter(
             Transaction.group_id == group_id,
+            Transaction.transaction_type == "savings",
+        )
+        .group_by(Transaction.user_id)
+        .all()
+    )
+    month_savings_by_user = dict(
+        db.session.query(
+            Transaction.user_id,
+            func.coalesce(func.sum(Transaction.amount), 0),
+        )
+        .filter(
+            Transaction.group_id == group_id,
+            Transaction.transaction_type == "savings",
             Transaction.created_at >= month_start,
         )
         .group_by(Transaction.user_id)
         .all()
     )
 
+    # Group-level expense totals.
+    total_spent = float(
+        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(
+            Transaction.group_id == group_id,
+            Transaction.transaction_type == "expense",
+        )
+        .scalar()
+        or 0
+    )
+    month_spent = float(
+        db.session.query(func.coalesce(func.sum(Transaction.amount), 0))
+        .filter(
+            Transaction.group_id == group_id,
+            Transaction.transaction_type == "expense",
+            Transaction.created_at >= month_start,
+        )
+        .scalar()
+        or 0
+    )
+
+    # Expense breakdown by category, sorted descending.
+    breakdown_rows = (
+        db.session.query(
+            Transaction.category,
+            func.coalesce(func.sum(Transaction.amount), 0),
+        )
+        .filter(
+            Transaction.group_id == group_id,
+            Transaction.transaction_type == "expense",
+        )
+        .group_by(Transaction.category)
+        .all()
+    )
+    expense_breakdown = sorted(
+        [
+            {"category": cat or "other", "amount": round(float(amt or 0), 2)}
+            for cat, amt in breakdown_rows
+        ],
+        key=lambda r: r["amount"],
+        reverse=True,
+    )
+
     members = []
-    group_total = 0.0
+    group_total_savings = 0.0
     top_contrib = None
     for m in rows:
         u = User.query.get(m.user_id)
@@ -900,12 +947,12 @@ def _group_detail_payload(group_id, my_membership):
         entry = _user_public_summary(u)
         entry["user_role"] = m.user_role.value if m.user_role else None
         entry["membership_id"] = m.id
-        member_total = float(totals_by_user.get(m.user_id, 0) or 0)
+        member_total = float(savings_by_user.get(m.user_id, 0) or 0)
         entry["total_saved"] = round(member_total, 2)
         entry["month_saved"] = round(
-            float(month_totals_by_user.get(m.user_id, 0) or 0), 2
+            float(month_savings_by_user.get(m.user_id, 0) or 0), 2
         )
-        group_total += member_total
+        group_total_savings += member_total
         if top_contrib is None or member_total > top_contrib["total_saved"]:
             top_contrib = {
                 "id": u.id,
@@ -916,16 +963,15 @@ def _group_detail_payload(group_id, my_membership):
             }
         members.append(entry)
 
-    # Share-of-group percentage per member.
     for entry in members:
         entry["share_pct"] = (
-            round(entry["total_saved"] / group_total * 100, 1)
-            if group_total > 0
+            round(entry["total_saved"] / group_total_savings * 100, 1)
+            if group_total_savings > 0
             else 0.0
         )
 
-    month_total = sum(
-        float(v or 0) for v in month_totals_by_user.values()
+    month_total_savings = sum(
+        float(v or 0) for v in month_savings_by_user.values()
     )
 
     return {
@@ -933,8 +979,12 @@ def _group_detail_payload(group_id, my_membership):
         "my_role": my_membership.user_role.value if my_membership.user_role else None,
         "member_count": len(members),
         "members": members,
-        "total_saved": round(group_total, 2),
-        "month_saved": round(month_total, 2),
+        "total_saved": round(group_total_savings, 2),
+        "month_saved": round(month_total_savings, 2),
+        "total_spent": round(total_spent, 2),
+        "month_spent": round(month_spent, 2),
+        "net_balance": round(group_total_savings - total_spent, 2),
+        "expense_breakdown": expense_breakdown,
         "top_contributor": top_contrib,
     }
 
