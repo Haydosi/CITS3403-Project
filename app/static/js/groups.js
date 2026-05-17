@@ -17,6 +17,49 @@ const renameGroupId = document.getElementById("renameGroupId");
 const renameGroupName = document.getElementById("renameGroupName");
 const renameSave = document.getElementById("renameSave");
 
+const addTxnModal = document.getElementById("addTxnModal");
+const addTxnGroupId = document.getElementById("addTxnGroupId");
+const addTxnAmount = document.getElementById("addTxnAmount");
+const addTxnDesc = document.getElementById("addTxnDesc");
+const addTxnCategory = document.getElementById("addTxnCategory");
+const addTxnCategoryWrap = document.getElementById("addTxnCategoryWrap");
+const addTxnSave = document.getElementById("addTxnSave");
+const addTxnError = document.getElementById("addTxnError");
+
+const CATEGORY_CONFIG = {
+    food:          { color: "#f59e0b", label: "Food" },
+    groceries:     { color: "#84cc16", label: "Groceries" },
+    transport:     { color: "#3b82f6", label: "Transport" },
+    housing:       { color: "#8b5cf6", label: "Housing" },
+    utilities:     { color: "#06b6d4", label: "Utilities" },
+    entertainment: { color: "#ec4899", label: "Entertainment" },
+    health:        { color: "#ef4444", label: "Health" },
+    shopping:      { color: "#f43f5e", label: "Shopping" },
+    other:         { color: "#64748b", label: "Other" },
+};
+function categoryConf(c) {
+    return CATEGORY_CONFIG[c] || CATEGORY_CONFIG.other;
+}
+
+const breakdownCharts = new Map();
+const recentTxnControllers = new Map(); // per-group AbortControllers
+
+function formatRelativeTime(iso) {
+    if (!iso) return "";
+    const then = new Date(iso);
+    const diff = (Date.now() - then.getTime()) / 1000;
+    if (diff < 60) return "just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    if (diff < 86400 * 7) return `${Math.floor(diff / 86400)}d ago`;
+    return then.toLocaleDateString();
+}
+
+function signedCurrency(amount, sign) {
+    const prefix = sign === "+" ? "+" : sign === "-" ? "−" : "";
+    return `${prefix}${currency(Math.abs(amount))}`;
+}
+
 let createModal;
 let inviteModalInst;
 let renameModalInst;
@@ -72,15 +115,21 @@ function statStrip(g) {
     const top = g.top_contributor;
     const topName = top ? escapeHtml(displayName(top)) : "—";
     const topInitials = top ? escapeHtml(initials(top)) : "··";
+    const net = Number(g.net_balance || 0);
+    const netClass = net < 0 ? "negative" : "positive";
     return `
         <div class="grp-stats">
-            <div class="grp-stat accent">
-                <span class="grp-stat-label">Group total</span>
+            <div class="grp-stat accent ${netClass}">
+                <span class="grp-stat-label">Net balance</span>
+                <span class="grp-stat-value">${currency(net)}</span>
+            </div>
+            <div class="grp-stat">
+                <span class="grp-stat-label">Total saved</span>
                 <span class="grp-stat-value">${currency(g.total_saved)}</span>
             </div>
             <div class="grp-stat">
-                <span class="grp-stat-label">This month</span>
-                <span class="grp-stat-value">${currency(g.month_saved)}</span>
+                <span class="grp-stat-label">Total spent</span>
+                <span class="grp-stat-value">${currency(g.total_spent)}</span>
             </div>
             <div class="grp-stat">
                 <span class="grp-stat-label">Members</span>
@@ -149,6 +198,10 @@ function memberRows(g, myRole) {
 function render() {
     activityCharts.forEach((c) => c.destroy());
     activityCharts.clear();
+    breakdownCharts.forEach((c) => c.destroy());
+    breakdownCharts.clear();
+    recentTxnControllers.forEach((c) => c.abort());
+    recentTxnControllers.clear();
 
     if (!cachedGroups.length) {
         groupsList.innerHTML = `
@@ -170,12 +223,14 @@ function render() {
         const myRole = g.my_role || "member";
         const card = document.createElement("section");
         card.className = "grp-card anim-in";
+        card.setAttribute("data-group-id", String(g.id));
         const inviteBtn = canInvite(myRole)
             ? `<button type="button" class="btn btn-sm btn-accent grp-invite" data-id="${g.id}"><i class="bi bi-person-plus me-1"></i>Invite</button>`
             : "";
         const renameBtn = canRename(myRole)
             ? `<button type="button" class="btn btn-sm btn-outline-light grp-rename" data-id="${g.id}"><i class="bi bi-pencil me-1"></i>Rename</button>`
             : "";
+        const addTxnBtn = `<button type="button" class="btn btn-sm btn-accent grp-add-txn" data-id="${g.id}"><i class="bi bi-plus-lg me-1"></i>Add transaction</button>`;
 
         card.innerHTML = `
             <div class="grp-card-head">
@@ -186,16 +241,31 @@ function render() {
                 <div class="grp-actions">
                     ${renameBtn}
                     ${inviteBtn}
+                    ${addTxnBtn}
                 </div>
             </div>
             <div class="grp-body">
                 ${statStrip(g)}
-                <div class="grp-chart-wrap">
-                    <div class="grp-chart-head">
-                        <span class="grp-chart-title">Last 30 days</span>
-                        <span class="grp-chart-sub" id="chartTotal-${g.id}"></span>
+                <div class="grp-chart-row">
+                    <div class="grp-chart-wrap">
+                        <div class="grp-chart-head">
+                            <span class="grp-chart-title">Last 30 days</span>
+                            <span class="grp-chart-sub" id="chartTotal-${g.id}"></span>
+                        </div>
+                        <canvas id="chart-${g.id}"></canvas>
                     </div>
-                    <canvas id="chart-${g.id}"></canvas>
+                    <div class="grp-breakdown-wrap">
+                        <div class="grp-chart-head">
+                            <span class="grp-chart-title">Expenses by category</span>
+                            <span class="grp-chart-sub">${currency(g.total_spent)}</span>
+                        </div>
+                        <div class="grp-breakdown-inner">
+                            <canvas id="breakdown-${g.id}"></canvas>
+                            <div class="grp-breakdown-empty d-none" id="breakdownEmpty-${g.id}">
+                                No expenses yet.
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="txn-table leaderboard-table">
@@ -210,10 +280,35 @@ function render() {
                         <tbody>${memberRows(g, myRole)}</tbody>
                     </table>
                 </div>
+                <div class="grp-recent-wrap">
+                    <div class="grp-chart-head">
+                        <span class="grp-chart-title">Recent group transactions</span>
+                        <span class="grp-chart-sub">Latest 50</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="txn-table">
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>When</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-${g.id}">
+                                <tr><td colspan="6" class="text-secondary small">Loading…</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>`;
         groupsList.appendChild(card);
 
         loadActivityChart(g.id);
+        renderBreakdownChart(g);
+        loadRecentTransactions(g.id);
     });
 
     groupsList.querySelectorAll(".grp-invite").forEach((btn) => {
@@ -233,6 +328,12 @@ function render() {
             renameGroupName.value = g ? g.group_name : "";
             clearErr();
             renameModalInst.show();
+        });
+    });
+
+    groupsList.querySelectorAll(".grp-add-txn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            openAddTxnModal(btn.getAttribute("data-id"));
         });
     });
 
@@ -265,27 +366,37 @@ async function loadActivityChart(groupId) {
         const data = await res.json();
         const series = data.series || [];
         const labels = series.map((p) => p.date);
-        const amounts = series.map((p) => p.amount);
-        const total = amounts.reduce((s, v) => s + v, 0);
-        if (totalEl) totalEl.textContent = `${currency(total)} added`;
+        const saved = series.map((p) => p.saved || 0);
+        const spent = series.map((p) => p.spent || 0);
+        const totalSaved = saved.reduce((s, v) => s + v, 0);
+        const totalSpent = spent.reduce((s, v) => s + v, 0);
+        if (totalEl) {
+            totalEl.textContent = `+${currency(totalSaved)} added · −${currency(totalSpent)} spent`;
+        }
 
         const ctx = canvas.getContext("2d");
-        const gradient = ctx.createLinearGradient(0, 0, 0, 90);
-        gradient.addColorStop(0, "rgba(45, 212, 168, 0.35)");
-        gradient.addColorStop(1, "rgba(45, 212, 168, 0)");
-
         const chart = new Chart(ctx, {
             type: "bar",
             data: {
                 labels,
                 datasets: [
                     {
-                        data: amounts,
-                        backgroundColor: gradient,
+                        label: "Saved",
+                        data: saved,
+                        backgroundColor: "rgba(45, 212, 168, 0.85)",
                         borderColor: "#2dd4a8",
                         borderWidth: 1,
                         borderRadius: 3,
-                        maxBarThickness: 8,
+                        maxBarThickness: 6,
+                    },
+                    {
+                        label: "Spent",
+                        data: spent,
+                        backgroundColor: "rgba(239, 68, 68, 0.85)",
+                        borderColor: "#ef4444",
+                        borderWidth: 1,
+                        borderRadius: 3,
+                        maxBarThickness: 6,
                     },
                 ],
             },
@@ -296,7 +407,7 @@ async function loadActivityChart(groupId) {
                     legend: { display: false },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => currency(ctx.parsed.y),
+                            label: (ctx) => `${ctx.dataset.label}: ${currency(ctx.parsed.y)}`,
                         },
                     },
                 },
@@ -309,6 +420,101 @@ async function loadActivityChart(groupId) {
         activityCharts.set(groupId, chart);
     } catch (_) {
         // Chart is decorative; failure is non-fatal.
+    }
+}
+
+function renderBreakdownChart(g) {
+    const canvas = document.getElementById(`breakdown-${g.id}`);
+    const emptyEl = document.getElementById(`breakdownEmpty-${g.id}`);
+    if (!canvas) return;
+    const breakdown = g.expense_breakdown || [];
+    if (!breakdown.length) {
+        canvas.classList.add("d-none");
+        if (emptyEl) emptyEl.classList.remove("d-none");
+        return;
+    }
+    canvas.classList.remove("d-none");
+    if (emptyEl) emptyEl.classList.add("d-none");
+
+    const labels = breakdown.map((e) => categoryConf(e.category).label);
+    const amounts = breakdown.map((e) => Math.abs(Number(e.amount) || 0));
+    const colors = breakdown.map((e) => categoryConf(e.category).color);
+
+    const ctx = canvas.getContext("2d");
+    const chart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+            labels,
+            datasets: [{
+                data: amounts,
+                backgroundColor: colors,
+                borderColor: "transparent",
+                hoverOffset: 6,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "62%",
+            plugins: {
+                legend: { display: true, position: "bottom", labels: { boxWidth: 10, color: "#cbd5e1" } },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.label}: ${currency(ctx.parsed)}`,
+                    },
+                },
+            },
+        },
+    });
+    breakdownCharts.set(g.id, chart);
+}
+
+async function loadRecentTransactions(groupId) {
+    const tbody = document.getElementById(`recent-${groupId}`);
+    if (!tbody) return;
+    if (recentTxnControllers.has(groupId)) {
+        recentTxnControllers.get(groupId).abort();
+    }
+    const controller = new AbortController();
+    recentTxnControllers.set(groupId, controller);
+
+    try {
+        const res = await fetch(`/api/private/groups/${groupId}/transactions`, { signal: controller.signal });
+        if (!res.ok) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-secondary small">Could not load transactions.</td></tr>`;
+            return;
+        }
+        const data = await res.json();
+        const txns = data.transactions || [];
+        if (!txns.length) {
+            tbody.innerHTML = `<tr><td colspan="6" class="text-secondary small">No transactions yet.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = txns.map((t) => {
+            const u = t.user || {};
+            const name = displayName(u);
+            const type = t.transaction_type;
+            const sign = type === "expense" ? "-" : "+";
+            const typeLabel = type === "expense" ? "Spend" : type === "savings" ? "Add" : type;
+            const cat = t.category ? categoryConf(t.category).label : "—";
+            return `
+                <tr>
+                    <td>
+                        <div class="leader-name-wrap">
+                            <div class="user-avatar">${escapeHtml(initials(u))}</div>
+                            <div>${escapeHtml(name)}</div>
+                        </div>
+                    </td>
+                    <td><span class="grp-role-pill">${escapeHtml(typeLabel)}</span></td>
+                    <td>${signedCurrency(t.amount, sign)}</td>
+                    <td>${escapeHtml(t.description || "")}</td>
+                    <td>${escapeHtml(cat)}</td>
+                    <td class="text-secondary small">${escapeHtml(formatRelativeTime(t.created_at))}</td>
+                </tr>`;
+        }).join("");
+    } catch (err) {
+        if (err.name === "AbortError") return;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-secondary small">Could not load transactions.</td></tr>`;
     }
 }
 
@@ -332,6 +538,62 @@ function openCreateGroupModal() {
 }
 
 openCreateGroup.addEventListener("click", openCreateGroupModal);
+
+let addTxnModalInst;
+
+function openAddTxnModal(groupId) {
+    addTxnGroupId.value = String(groupId);
+    addTxnAmount.value = "";
+    addTxnDesc.value = "";
+    addTxnCategory.value = "food";
+    addTxnError.classList.add("d-none");
+    addTxnError.textContent = "";
+    const savingsRadio = document.getElementById("addTxnTypeSavings");
+    savingsRadio.checked = true;
+    addTxnCategoryWrap.classList.add("d-none");
+    addTxnModalInst.show();
+}
+
+document.querySelectorAll('input[name="addTxnType"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+        const isExpense = document.getElementById("addTxnTypeExpense").checked;
+        addTxnCategoryWrap.classList.toggle("d-none", !isExpense);
+    });
+});
+
+addTxnSave.addEventListener("click", async () => {
+    const gid = parseInt(addTxnGroupId.value, 10);
+    const amount = parseFloat(addTxnAmount.value);
+    if (!gid || !Number.isFinite(amount) || amount <= 0) {
+        addTxnError.textContent = "Enter an amount greater than 0.";
+        addTxnError.classList.remove("d-none");
+        return;
+    }
+    const isExpense = document.getElementById("addTxnTypeExpense").checked;
+    const body = {
+        amount,
+        group_id: gid,
+        transaction_type: isExpense ? "expense" : "savings",
+    };
+    const desc = addTxnDesc.value.trim();
+    if (desc) body.description = desc;
+    if (isExpense) body.category = addTxnCategory.value;
+
+    addTxnError.classList.add("d-none");
+    const res = await fetch("/api/private/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        addTxnError.textContent = err.error || "Could not save.";
+        addTxnError.classList.remove("d-none");
+        return;
+    }
+    addTxnModalInst.hide();
+    await loadGroups();
+});
 
 createGroupSave.addEventListener("click", async () => {
     const name = newGroupName.value.trim();
@@ -401,5 +663,6 @@ renameSave.addEventListener("click", async () => {
 if (createGroupModal) createModal = new bootstrap.Modal(createGroupModal);
 if (inviteModal) inviteModalInst = new bootstrap.Modal(inviteModal);
 if (renameModal) renameModalInst = new bootstrap.Modal(renameModal);
+if (addTxnModal) addTxnModalInst = new bootstrap.Modal(addTxnModal);
 
 loadGroups();
