@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 
 from flask import Blueprint, request, jsonify
 from flask_login import current_user, login_user, logout_user
@@ -184,14 +184,32 @@ def api_dashboard():
     return jsonify(total_users=total_users, active_users=active_users, latest_users=latest_users)
 
 
+def _window_cutoff(raw):
+    # Map ?window= values to a datetime cutoff (or None for all-time).
+    value = (raw or "all").lower()
+    now = datetime.now(UTC)
+    if value == "week":
+        return now - timedelta(days=7)
+    if value == "month":
+        return datetime(now.year, now.month, 1, tzinfo=UTC)
+    return None
+
+
 @private_api.route("/leaderboard", methods=["GET"])
 def api_leaderboard():
     # Private leaderboard endpoint - returns top savers globally.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-    
+
+    window = (request.args.get("window") or "all").lower()
+    cutoff = _window_cutoff(window)
+
     # Global leaderboard ranks users on personal-only savings — group-tagged
     # rows are scored in the family leaderboard instead (see Issue 6).
+    txn_filter = (User.id == Transaction.user_id) & (Transaction.group_id.is_(None))
+    if cutoff is not None:
+        txn_filter = txn_filter & (Transaction.created_at >= cutoff)
+
     leaderboard_query = db.session.query(
         User.id,
         User.username,
@@ -199,13 +217,10 @@ def api_leaderboard():
         User.first_name,
         User.last_name,
         func.coalesce(func.sum(Transaction.amount), 0).label('total_saved')
-    ).outerjoin(
-        Transaction,
-        (User.id == Transaction.user_id) & (Transaction.group_id.is_(None)),
-    ).group_by(User.id).order_by(
+    ).outerjoin(Transaction, txn_filter).group_by(User.id).order_by(
         func.coalesce(func.sum(Transaction.amount), 0).desc()
-    ).limit(10)
-    
+    ).limit(50)
+
     leaderboard = []
     for user_id, username, email, first_name, last_name, total_saved in leaderboard_query:
         leaderboard.append({
@@ -216,8 +231,8 @@ def api_leaderboard():
             "last_name": last_name,
             "total_saved": float(total_saved) if total_saved else 0,
         })
-    
-    return jsonify(leaderboard=leaderboard)
+
+    return jsonify(leaderboard=leaderboard, window=window)
 
 
 @private_api.route("/leaderboard/family/<int:group_id>", methods=["GET"])
@@ -225,8 +240,14 @@ def api_family_leaderboard(group_id):
     # Private family leaderboard endpoint - returns top savers in a specific family group.
     if not current_user.is_authenticated:
         return json_error("Authentication required", 401)
-    
-    # Query to calculate total savings per user in a specific group
+
+    window = (request.args.get("window") or "all").lower()
+    cutoff = _window_cutoff(window)
+
+    txn_filter = (User.id == Transaction.user_id) & (Transaction.group_id == group_id)
+    if cutoff is not None:
+        txn_filter = txn_filter & (Transaction.created_at >= cutoff)
+
     # Include all group members, even if they have no transactions in that group.
     leaderboard_query = db.session.query(
         User.id,
@@ -239,10 +260,7 @@ def api_family_leaderboard(group_id):
         UserGroupMembership, User.id == UserGroupMembership.user_id
     ).filter(
         UserGroupMembership.group_id == group_id
-    ).outerjoin(
-        Transaction,
-        (User.id == Transaction.user_id) & (Transaction.group_id == group_id)
-    ).group_by(
+    ).outerjoin(Transaction, txn_filter).group_by(
         User.id,
         User.username,
         User.email,
@@ -251,10 +269,21 @@ def api_family_leaderboard(group_id):
     ).order_by(
         func.coalesce(func.sum(Transaction.amount), 0).desc()
     )
-    
+
     leaderboard = _family_leaderboard_payload(leaderboard_query)
 
-    return jsonify(leaderboard=leaderboard)
+    return jsonify(leaderboard=leaderboard, window=window)
+
+
+@private_api.route("/groups/<int:group_id>/activity", methods=["GET"])
+def api_group_activity(group_id):
+    # Daily group-tagged savings for the last 30 days. Used for the
+    # per-group sparkline chart on the Groups page.
+    if not current_user.is_authenticated:
+        return json_error("Authentication required", 401)
+    if _membership(current_user.id, group_id) is None:
+        return json_error("Not a member of this group", 403)
+    return jsonify(group_id=group_id, days=30, series=_group_activity_series(group_id, days=30))
 
 
 @private_api.route("/targets", methods=["GET"])
@@ -837,7 +866,36 @@ def _group_detail_payload(group_id, my_membership):
     rows = UserGroupMembership.query.filter_by(group_id=group_id).order_by(
         UserGroupMembership.id.asc()
     ).all()
+
+    # Aggregate group-tagged savings per user in this group.
+    totals_by_user = dict(
+        db.session.query(
+            Transaction.user_id,
+            func.coalesce(func.sum(Transaction.amount), 0),
+        )
+        .filter(Transaction.group_id == group_id)
+        .group_by(Transaction.user_id)
+        .all()
+    )
+
+    now = datetime.now(UTC)
+    month_start = datetime(now.year, now.month, 1, tzinfo=UTC)
+    month_totals_by_user = dict(
+        db.session.query(
+            Transaction.user_id,
+            func.coalesce(func.sum(Transaction.amount), 0),
+        )
+        .filter(
+            Transaction.group_id == group_id,
+            Transaction.created_at >= month_start,
+        )
+        .group_by(Transaction.user_id)
+        .all()
+    )
+
     members = []
+    group_total = 0.0
+    top_contrib = None
     for m in rows:
         u = User.query.get(m.user_id)
         if u is None:
@@ -845,13 +903,69 @@ def _group_detail_payload(group_id, my_membership):
         entry = _user_public_summary(u)
         entry["user_role"] = m.user_role.value if m.user_role else None
         entry["membership_id"] = m.id
+        member_total = float(totals_by_user.get(m.user_id, 0) or 0)
+        entry["total_saved"] = round(member_total, 2)
+        entry["month_saved"] = round(
+            float(month_totals_by_user.get(m.user_id, 0) or 0), 2
+        )
+        group_total += member_total
+        if top_contrib is None or member_total > top_contrib["total_saved"]:
+            top_contrib = {
+                "id": u.id,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "username": u.username,
+                "total_saved": member_total,
+            }
         members.append(entry)
+
+    # Share-of-group percentage per member.
+    for entry in members:
+        entry["share_pct"] = (
+            round(entry["total_saved"] / group_total * 100, 1)
+            if group_total > 0
+            else 0.0
+        )
+
+    month_total = sum(
+        float(v or 0) for v in month_totals_by_user.values()
+    )
+
     return {
         **g.to_dict(),
         "my_role": my_membership.user_role.value if my_membership.user_role else None,
         "member_count": len(members),
         "members": members,
+        "total_saved": round(group_total, 2),
+        "month_saved": round(month_total, 2),
+        "top_contributor": top_contrib,
     }
+
+
+def _group_activity_series(group_id, days=30):
+    # Daily group-tagged savings for the last N days (used for sparkline charts).
+    now = datetime.now(UTC)
+    start = datetime(now.year, now.month, now.day, tzinfo=UTC) - timedelta(
+        days=days - 1
+    )
+    rows = (
+        db.session.query(
+            func.date(Transaction.created_at).label("d"),
+            func.coalesce(func.sum(Transaction.amount), 0),
+        )
+        .filter(
+            Transaction.group_id == group_id,
+            Transaction.created_at >= start,
+        )
+        .group_by(func.date(Transaction.created_at))
+        .all()
+    )
+    by_day = {str(r[0]): float(r[1] or 0) for r in rows}
+    series = []
+    for i in range(days):
+        day = (start + timedelta(days=i)).date().isoformat()
+        series.append({"date": day, "amount": round(by_day.get(day, 0.0), 2)})
+    return series
 
 
 def _promote_next_owner(group_id, leaving_user_id):

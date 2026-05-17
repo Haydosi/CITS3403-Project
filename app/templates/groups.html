@@ -12,7 +12,7 @@
     <section class="top-bar anim-in">
         <div>
             <h2 class="page-title">Groups</h2>
-            <p class="page-subtitle">Create a group, invite members by email, and manage roles.</p>
+            <p class="page-subtitle">Save together — create a group, invite members, and track each other's contributions.</p>
         </div>
         <button type="button" class="btn btn-accent" id="openCreateGroup">
             <i class="bi bi-plus-lg"></i> New group
@@ -26,8 +26,8 @@
 
 <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content grp-modal-surface">
-            <div class="modal-header border-secondary">
+        <div class="modal-content">
+            <div class="modal-header">
                 <h5 class="modal-title" id="createGroupModalLabel">Create group</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -35,7 +35,7 @@
                 <label class="form-label" for="newGroupName">Group name</label>
                 <input type="text" class="form-control" id="newGroupName" maxlength="50" placeholder="e.g. Weekend savers">
             </div>
-            <div class="modal-footer border-secondary">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-accent" id="createGroupSave">Create</button>
             </div>
@@ -45,8 +45,8 @@
 
 <div class="modal fade" id="inviteModal" tabindex="-1" aria-labelledby="inviteModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content grp-modal-surface">
-            <div class="modal-header border-secondary">
+        <div class="modal-content">
+            <div class="modal-header">
                 <h5 class="modal-title" id="inviteModalLabel">Invite member</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -55,7 +55,7 @@
                 <label class="form-label" for="inviteEmail">Their account email</label>
                 <input type="email" class="form-control" id="inviteEmail" placeholder="friend@example.com">
             </div>
-            <div class="modal-footer border-secondary">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-accent" id="inviteSave">Send invite</button>
             </div>
@@ -65,8 +65,8 @@
 
 <div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content grp-modal-surface">
-            <div class="modal-header border-secondary">
+        <div class="modal-content">
+            <div class="modal-header">
                 <h5 class="modal-title" id="renameModalLabel">Rename group</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -75,7 +75,7 @@
                 <label class="form-label" for="renameGroupName">New name</label>
                 <input type="text" class="form-control" id="renameGroupName" maxlength="50">
             </div>
-            <div class="modal-footer border-secondary">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-accent" id="renameSave">Save</button>
             </div>
@@ -85,5 +85,6 @@
 {% endblock %}
 
 {% block page_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="{{ url_for('static', filename='js/groups.js') }}"></script>
 {% endblock %}

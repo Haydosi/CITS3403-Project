@@ -231,20 +231,6 @@ if (breakdownMonthSelect) {
     });
 }
 
-// ─── Sidebar Toggle (mobile) ────────────────────────────────
-const sidebar = document.getElementById('sidebar');
-const overlay = document.getElementById('sidebarOverlay');
-const toggle = document.getElementById('sidebarToggle');
-
-toggle.addEventListener('click', () => {
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('show');
-});
-overlay.addEventListener('click', () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('show');
-});
-
 // ─── Savings Targets ─────────────────────────────────────────
 // Targets are loaded from the API and re-rendered after every change.
 // Rows are built with createElement + textContent (NOT innerHTML) because

@@ -3,119 +3,335 @@
    Shared base styles (variables, sidebar, layout) are in base.css
 ============================================================ */
 
-/* ============================================================
-   1. Toolbar
-============================================================ */
-.leaderboard-toolbar {
-    display: grid;
-    grid-template-columns: 1fr 180px 180px;
-    gap: 12px;
+.lb-top-bar {
+    flex-wrap: wrap;
+    gap: 16px;
 }
 
-.search-wrap { position: relative; }
-.search-wrap i {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-}
-.search-wrap .form-control { padding-left: 36px; }
-
-/* ============================================================
-   2. Section Switcher Tabs
-============================================================ */
-.section-switcher {
+.lb-top-actions {
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 16px;
     flex-wrap: wrap;
 }
 
-.section-tab {
-    border: 1px solid var(--border-subtle);
+/* ─── Tabs (global / group) live in the top bar now ────── */
+.lb-tabs {
+    display: inline-flex;
     background: var(--surface-2);
-    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
     border-radius: 999px;
-    padding: 10px 14px;
+    padding: 4px;
+    gap: 2px;
+}
+
+.lb-tab {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
     font-weight: 600;
-    font-size: 0.85rem;
+    padding: 7px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--transition-smooth);
+}
+
+.lb-tab:hover { color: var(--text-primary); }
+
+.lb-tab.active {
+    background: var(--accent-teal-dim);
+    color: var(--accent-teal);
+    box-shadow: 0 0 0 1px rgba(45, 212, 168, 0.35);
+}
+
+/* ─── "Last updated" pill ────────────────────────────── */
+.lb-updated {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border-subtle);
+    padding: 6px 12px;
+    border-radius: 999px;
+}
+
+.lb-updated i { font-size: 0.85rem; }
+
+/* ─── Filter strip ───────────────────────────────────── */
+.lb-filter-strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.lb-window-switcher {
+    display: inline-flex;
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.lb-window-tab {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 8px 14px;
     cursor: pointer;
     transition: all var(--transition-smooth);
 }
 
-.section-tab:hover { color: var(--text-primary); border-color: var(--border-hover); }
+.lb-window-tab:hover { color: var(--text-primary); background: var(--surface-2); }
 
-.section-tab.active {
+.lb-window-tab.active {
     background: var(--accent-teal-dim);
     color: var(--accent-teal);
-    border-color: rgba(45, 212, 168, 0.45);
+}
+
+.lb-group-picker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.lb-group-picker .form-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+
+.lb-group-picker .form-select {
+    min-width: 200px;
 }
 
 .hidden-section { display: none; }
 
-/* ============================================================
-   3. Podium Cards
-============================================================ */
-.podium-card {
-    position: relative;
-    border: 1px solid var(--border-subtle);
+/* ─── Podium (top 3) ─────────────────────────────────── */
+.lb-podium {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr 1fr;
+    gap: 14px;
+    align-items: end;
 }
 
-.podium-rank { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; }
+.lb-podium-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 22px 18px 24px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform var(--transition-smooth), box-shadow var(--transition-smooth);
+}
 
-.podium-user {
+.lb-podium-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--podium-glow, transparent);
+    opacity: 0.18;
+    pointer-events: none;
+}
+
+.lb-podium-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-card-hover);
+}
+
+.lb-podium-card .lb-rank-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.podium-name { font-weight: 700; }
-
-.podium-score {
-    font-family: 'Bricolage Grotesque', sans-serif;
-    font-size: 1.5rem;
-    color: var(--accent-teal);
+    justify-content: center;
+    font-family: "Bricolage Grotesque", sans-serif;
     font-weight: 800;
+    font-size: 1.05rem;
+    color: #0b0f14;
+    position: relative;
+    z-index: 1;
 }
 
-/* ============================================================
-   4. Leaderboard Table
-============================================================ */
+.lb-podium-card .lb-rank-icon {
+    font-size: 1rem;
+    margin-right: 4px;
+}
+
+.lb-podium-card .lb-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    margin: 6px auto 12px;
+    background: linear-gradient(135deg, var(--accent-teal), var(--accent-blue));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 800;
+    font-size: 1.05rem;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 24px var(--podium-glow, transparent);
+}
+
+.lb-podium-card .lb-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    position: relative;
+    z-index: 1;
+}
+
+.lb-podium-card .lb-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    position: relative;
+    z-index: 1;
+    margin-bottom: 12px;
+    word-break: break-all;
+}
+
+.lb-podium-card .lb-amount {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--podium-color, var(--accent-teal));
+    letter-spacing: -0.02em;
+    position: relative;
+    z-index: 1;
+}
+
+.lb-podium-card .lb-delta {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Rank-specific accents */
+.lb-podium-card.rank-1 {
+    --podium-color: #f5c945;
+    --podium-glow: rgba(245, 201, 69, 0.35);
+    border-color: rgba(245, 201, 69, 0.4);
+    padding-top: 28px;
+    padding-bottom: 28px;
+}
+
+.lb-podium-card.rank-1 .lb-rank-badge { background: linear-gradient(135deg, #ffe680, #f5c945); }
+.lb-podium-card.rank-1 .lb-avatar { background: linear-gradient(135deg, #f5c945, #f59e0b); box-shadow: 0 0 30px rgba(245, 201, 69, 0.45); }
+
+.lb-podium-card.rank-2 {
+    --podium-color: #c9d2dc;
+    --podium-glow: rgba(201, 210, 220, 0.25);
+}
+
+.lb-podium-card.rank-2 .lb-rank-badge { background: linear-gradient(135deg, #e6ecf2, #c9d2dc); }
+.lb-podium-card.rank-2 .lb-avatar { background: linear-gradient(135deg, #c9d2dc, #8a99a8); }
+
+.lb-podium-card.rank-3 {
+    --podium-color: #d99e6c;
+    --podium-glow: rgba(217, 158, 108, 0.28);
+}
+
+.lb-podium-card.rank-3 .lb-rank-badge { background: linear-gradient(135deg, #f0c69a, #d99e6c); }
+.lb-podium-card.rank-3 .lb-avatar { background: linear-gradient(135deg, #d99e6c, #a96a3c); }
+
+/* ─── Standings table ───────────────────────────────── */
+.leaderboard-table tbody td { vertical-align: middle; }
+
+.leaderboard-table tbody tr.leaderboard-me {
+    background: rgba(45, 212, 168, 0.08);
+}
+
+.leaderboard-table tbody tr.leaderboard-me td:first-child {
+    border-left: 3px solid var(--accent-teal);
+    padding-left: 8px;
+}
+
+.lb-rank-cell {
+    font-family: "Bricolage Grotesque", sans-serif;
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    width: 56px;
+}
+
 .leader-name-wrap {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.leaderboard-table tbody tr.leaderboard-me {
-    background: rgba(45, 212, 168, 0.08);
-}
-
-.percentage-under {
-    margin-top: 8px;
-    font-size: 0.8rem;
-    color: var(--accent-teal);
+.lb-amount-cell {
+    font-family: "Bricolage Grotesque", sans-serif;
     font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--accent-teal);
 }
 
-/* ============================================================
-   5. Refresh status (top bar)
-============================================================ */
-.leaderboard-current-time {
-    display: inline-flex;
+.lb-delta-cell {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+/* ─── "Your rank" pinned row (when not in top 10) ─── */
+.lb-your-rank {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--accent-teal-dim);
+    border: 1px solid rgba(45, 212, 168, 0.3);
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--accent-teal);
+    font-weight: 600;
 }
 
-.leaderboard-current-time i {
-    font-size: 0.9rem;
-    opacity: 0.85;
+.lb-your-rank-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.72rem;
 }
 
-/* ============================================================
-   6. Responsive
-============================================================ */
-@media (max-width: 991.98px) {
-    .leaderboard-toolbar { grid-template-columns: 1fr; }
+/* ─── Empty state for group tab ─────────────────────── */
+.lb-group-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-secondary);
+}
+
+.lb-group-empty i {
+    font-size: 2rem;
+    color: var(--accent-teal);
+    display: block;
+    margin-bottom: 8px;
+}
+
+.lb-group-empty p { margin-bottom: 16px; }
+
+/* ─── Responsive ────────────────────────────────────── */
+@media (max-width: 767.98px) {
+    .lb-podium { grid-template-columns: 1fr; }
+    .lb-podium-card.rank-1 { order: -1; }
+    .lb-top-actions { width: 100%; justify-content: space-between; }
 }

@@ -73,9 +73,31 @@ TARGET_OPTIONS = [
 
 
 def _random_dt(months_back=6):
+    # Weighted toward recent activity: ~50% in the last 30 days, ~30% in the
+    # 1-3 month range, ~20% older. Keeps the dashboards / sparkline charts /
+    # week-month leaderboard filters visibly populated instead of mostly empty.
     now = datetime.now(UTC)
-    start = now - timedelta(days=months_back * 30)
-    return start + timedelta(seconds=random.randint(0, int((now - start).total_seconds())))
+    bucket = random.random()
+    if bucket < 0.50:
+        delta_days = random.uniform(0, 30)
+    elif bucket < 0.80:
+        delta_days = random.uniform(30, 90)
+    else:
+        delta_days = random.uniform(90, months_back * 30)
+    return now - timedelta(
+        days=delta_days,
+        seconds=random.randint(0, 86399),
+    )
+
+
+def _recent_dt(days_back):
+    # Uniform random datetime in the last `days_back` days. Used to seed
+    # guaranteed-recent activity for demo charts.
+    now = datetime.now(UTC)
+    return now - timedelta(
+        days=random.uniform(0, days_back),
+        seconds=random.randint(0, 86399),
+    )
 
 
 def _family_code():
@@ -163,7 +185,10 @@ def seed_db():
 
     db.session.flush()
 
-    # --- Transactions (25 % chance of group_id for group members) ---
+    # --- Transactions (25 % chance of group_id for savings/transfer rows) ---
+    # Group-tagged transactions feed the group leaderboard and the per-group
+    # sparkline chart. Expenses are intentionally NOT group-tagged so they
+    # don't subtract from a group's "savings total".
     for user in users:
         gid = user_group_map.get(user.id)
         for _ in range(random.randint(20, 50)):
@@ -183,9 +208,10 @@ def seed_db():
                 desc = random.choice(TRANSFER_DESCS)
 
             created = _random_dt(6)
+            in_group = gid and tx_type != "expense" and random.random() < 0.25
             db.session.add(Transaction(
                 user_id=user.id,
-                group_id=gid if (gid and random.random() < 0.25) else None,
+                group_id=gid if in_group else None,
                 amount=amount,
                 description=desc,
                 transaction_type=tx_type,
@@ -193,6 +219,41 @@ def seed_db():
                 created_at=created,
                 updated_at=created,
             ))
+
+    # Guaranteed recent group activity so the new 30-day sparkline chart on
+    # the Groups page is visibly populated. Each group member gets 2-4
+    # savings deposits spread across the last 21 days.
+    for group, members in group_records:
+        for user in members:
+            for _ in range(random.randint(2, 4)):
+                amount = round(random.uniform(80, 600), 2)
+                created = _recent_dt(21)
+                db.session.add(Transaction(
+                    user_id=user.id,
+                    group_id=group.id,
+                    amount=amount,
+                    description=random.choice(SAVINGS_DESCS),
+                    transaction_type="savings",
+                    category=None,
+                    created_at=created,
+                    updated_at=created,
+                ))
+
+    # Guaranteed last-7-days personal savings for the test user so the
+    # "This week" leaderboard filter has visible content for them.
+    for _ in range(3):
+        amount = round(random.uniform(120, 480), 2)
+        created = _recent_dt(7)
+        db.session.add(Transaction(
+            user_id=test_user.id,
+            group_id=None,
+            amount=amount,
+            description=random.choice(SAVINGS_DESCS),
+            transaction_type="savings",
+            category=None,
+            created_at=created,
+            updated_at=created,
+        ))
 
     db.session.flush()
 
