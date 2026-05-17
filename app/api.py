@@ -990,28 +990,39 @@ def _group_detail_payload(group_id, my_membership):
 
 
 def _group_activity_series(group_id, days=30):
-    # Daily group-tagged savings for the last N days (used for sparkline charts).
+    # Daily group-tagged savings and expenses for the last N days. Zero-filled.
     now = datetime.now(UTC)
     start = datetime(now.year, now.month, now.day, tzinfo=UTC) - timedelta(
         days=days - 1
     )
-    rows = (
-        db.session.query(
-            func.date(Transaction.created_at).label("d"),
-            func.coalesce(func.sum(Transaction.amount), 0),
+
+    def _by_day(tx_type):
+        rows = (
+            db.session.query(
+                func.date(Transaction.created_at).label("d"),
+                func.coalesce(func.sum(Transaction.amount), 0),
+            )
+            .filter(
+                Transaction.group_id == group_id,
+                Transaction.transaction_type == tx_type,
+                Transaction.created_at >= start,
+            )
+            .group_by(func.date(Transaction.created_at))
+            .all()
         )
-        .filter(
-            Transaction.group_id == group_id,
-            Transaction.created_at >= start,
-        )
-        .group_by(func.date(Transaction.created_at))
-        .all()
-    )
-    by_day = {str(r[0]): float(r[1] or 0) for r in rows}
+        return {str(r[0]): float(r[1] or 0) for r in rows}
+
+    saved_by_day = _by_day("savings")
+    spent_by_day = _by_day("expense")
+
     series = []
     for i in range(days):
         day = (start + timedelta(days=i)).date().isoformat()
-        series.append({"date": day, "amount": round(by_day.get(day, 0.0), 2)})
+        series.append({
+            "date": day,
+            "saved": round(saved_by_day.get(day, 0.0), 2),
+            "spent": round(spent_by_day.get(day, 0.0), 2),
+        })
     return series
 
 

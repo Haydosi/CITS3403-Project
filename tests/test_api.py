@@ -487,6 +487,37 @@ class ApiTestCase(unittest.TestCase):
         self.assertAlmostEqual(breakdown["food"], 30.0, places=2)
         self.assertAlmostEqual(breakdown["transport"], 20.0, places=2)
 
+    def test_group_activity_returns_saved_and_spent_per_day(self):
+        self._register_user(email="a@a.com")
+        self._login_user(email="a@a.com")
+        gid = self.client.post(
+            "/api/private/groups", json={"group_name": "Act"}
+        ).get_json()["group"]["id"]
+        self.client.post("/api/private/transactions", json={
+            "amount": 60, "transaction_type": "savings", "group_id": gid,
+        })
+        self.client.post("/api/private/transactions", json={
+            "amount": 15, "transaction_type": "expense",
+            "category": "food", "group_id": gid,
+        })
+
+        res = self.client.get(f"/api/private/groups/{gid}/activity")
+        self.assertEqual(res.status_code, 200)
+        body = res.get_json()
+        self.assertEqual(body["days"], 30)
+        series = body["series"]
+        self.assertEqual(len(series), 30)
+        # Today's point (last in series) carries both numbers.
+        last = series[-1]
+        self.assertIn("date", last)
+        self.assertIn("saved", last)
+        self.assertIn("spent", last)
+        self.assertAlmostEqual(last["saved"], 60.0, places=2)
+        self.assertAlmostEqual(last["spent"], 15.0, places=2)
+        # Earlier zero-filled days carry both zero fields.
+        self.assertEqual(series[0]["saved"], 0.0)
+        self.assertEqual(series[0]["spent"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
