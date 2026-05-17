@@ -11,10 +11,19 @@ const txnModalLabel = document.getElementById("txnModalLabel");
 const txnEditId = document.getElementById("txnEditId");
 const txnAmount = document.getElementById("txnAmount");
 const txnType = document.getElementById("txnType");
+const txnCategoryWrap = document.getElementById("txnCategoryWrap");
+const txnCategory = document.getElementById("txnCategory");
 const txnDescription = document.getElementById("txnDescription");
-const txnGroup = document.getElementById("txnGroup");
 const txnSaveBtn = document.getElementById("txnSaveBtn");
 const openAddTxn = document.getElementById("openAddTxn");
+
+function updateCategoryVisibility() {
+    const isExpense = txnType.value === "expense";
+    txnCategoryWrap.classList.toggle("d-none", !isExpense);
+    if (!isExpense) txnCategory.value = "";
+}
+
+txnType.addEventListener("change", updateCategoryVisibility);
 
 let txnModalInstance = null;
 
@@ -63,8 +72,9 @@ function resetModalForAdd() {
     txnModalLabel.textContent = "Add transaction";
     txnAmount.value = "";
     txnType.value = "savings";
+    txnCategory.value = "";
     txnDescription.value = "";
-    txnGroup.value = "";
+    updateCategoryVisibility();
     clearTxnError();
 }
 
@@ -73,26 +83,11 @@ function openModalForEdit(row) {
     txnModalLabel.textContent = "Edit transaction";
     txnAmount.value = row.amount;
     txnType.value = row.transaction_type || "savings";
+    txnCategory.value = row.category || "";
     txnDescription.value = row.description || "";
-    txnGroup.value = row.group_id ? String(row.group_id) : "";
+    updateCategoryVisibility();
     clearTxnError();
     txnModalInstance.show();
-}
-
-async function loadGroupsIntoSelect() {
-    const res = await fetch("/api/private/me/groups");
-    if (!res.ok) return;
-    const data = await res.json();
-    const groups = data.groups || [];
-    const keep = txnGroup.querySelector('option[value=""]');
-    txnGroup.innerHTML = "";
-    txnGroup.appendChild(keep);
-    groups.forEach((g) => {
-        const opt = document.createElement("option");
-        opt.value = String(g.id);
-        opt.textContent = g.group_name || `Group #${g.id}`;
-        txnGroup.appendChild(opt);
-    });
 }
 
 function renderRows(transactions) {
@@ -105,7 +100,6 @@ function renderRows(transactions) {
             <td>${formatDate(row.created_at)}</td>
             <td><span class="txn-type-pill ${typeClass(row.transaction_type)}">${row.transaction_type || "—"}</span></td>
             <td>${escapeHtml(row.description || "—")}</td>
-            <td>${escapeHtml(row.group_name || "—")}</td>
             <td class="text-end ${amtClass}">${currency(amt)}</td>
             <td class="text-end">
                 <button type="button" class="btn btn-sm btn-outline-light me-1 txn-edit" data-id="${row.id}">Edit</button>
@@ -171,9 +165,8 @@ txnSaveBtn.addEventListener("click", async () => {
         amount: parseFloat(amountVal),
         transaction_type: txnType.value,
         description: txnDescription.value.trim() || null,
+        category: txnType.value === "expense" ? (txnCategory.value || null) : null,
     };
-    const gid = txnGroup.value.trim();
-    if (gid) payload.group_id = parseInt(gid, 10);
 
     const editId = txnEditId.value.trim();
     let res;
@@ -226,4 +219,4 @@ if (toggle && sidebar && overlay) {
     });
 }
 
-loadGroupsIntoSelect().then(() => refreshList());
+refreshList();

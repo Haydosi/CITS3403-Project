@@ -317,6 +317,30 @@ body::before {
     color: var(--text-secondary);
 }
 
+/* Variant: a <select> styled to match the badge so the month picker on the
+   Expense Breakdown card looks like a pill but behaves like a dropdown. */
+select.dash-card-select {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    cursor: pointer;
+    padding-right: 24px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%237a8ba3'><path d='M4 6l4 4 4-4z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    background-size: 12px 12px;
+}
+
+select.dash-card-select:focus {
+    outline: 2px solid var(--accent-1, #6366f1);
+    outline-offset: 1px;
+}
+
+select.dash-card-select option {
+    background: var(--surface-2);
+    color: var(--text-primary);
+}
+
 /* ============================================================
    6. Modal & Form overrides
 ============================================================ */

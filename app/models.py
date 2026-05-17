@@ -177,7 +177,8 @@ class Transaction(db.Model):
     )
     amount = db.Column(db.Numeric(precision=12, scale=2), nullable=False)  # Amount saved (positive) or spent (negative)
     description = db.Column(db.String(255))
-    transaction_type = db.Column(db.String(50), nullable=False, default="savings")  # savings, expense, transfer, etc.
+    transaction_type = db.Column(db.String(50), nullable=False, default="savings")  # savings, expense, transfer
+    category = db.Column(db.String(50), nullable=True)  # Sub-category for expense rows (e.g. food, transport)
     created_at = db.Column(db.DateTime, nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime, nullable=False, default=utc_now,
                            onupdate=utc_now)
@@ -202,6 +203,7 @@ class Transaction(db.Model):
             "amount": self.amount,
             "description": self.description,
             "transaction_type": self.transaction_type,
+            "category": self.category,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }

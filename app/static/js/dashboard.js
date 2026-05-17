@@ -1,4 +1,5 @@
 // ─── Type config: maps transaction_type → display colour + label ─
+// Used by the Recent Transactions row pills (savings / expense / transfer).
 const TYPE_CONFIG = {
     savings:  { color: '#10b981', label: 'Savings' },
     expense:  { color: '#f43f5e', label: 'Expense' },
@@ -8,16 +9,57 @@ function typeConf(type) {
     return TYPE_CONFIG[type] || { color: '#64748b', label: type || 'Other' };
 }
 
+// ─── Category config: maps Transaction.category → colour + label ─
+// Used by the Expense Breakdown donut. Keep in sync with
+// ALLOWED_EXPENSE_CATEGORIES in app/api.py.
+const CATEGORY_CONFIG = {
+    food:          { color: '#f59e0b', label: 'Food' },
+    groceries:     { color: '#84cc16', label: 'Groceries' },
+    transport:     { color: '#3b82f6', label: 'Transport' },
+    housing:       { color: '#8b5cf6', label: 'Housing' },
+    utilities:     { color: '#06b6d4', label: 'Utilities' },
+    entertainment: { color: '#ec4899', label: 'Entertainment' },
+    health:        { color: '#ef4444', label: 'Health' },
+    shopping:      { color: '#f43f5e', label: 'Shopping' },
+    other:         { color: '#64748b', label: 'Other' },
+};
+function categoryConf(category) {
+    return CATEGORY_CONFIG[category] || CATEGORY_CONFIG.other;
+}
+
 // ─── Dashboard Summary ─────────────────────────────────────────
 let expenseChart = null;
+let selectedBreakdownMonth = '';
 
-async function loadDashboardSummary() {
-    const res = await fetch('/api/private/dashboard/summary');
+async function loadDashboardSummary(month) {
+    const url = month
+        ? `/api/private/dashboard/summary?month=${encodeURIComponent(month)}`
+        : '/api/private/dashboard/summary';
+    const res = await fetch(url);
     if (!res.ok) return;
     const data = await res.json();
-    renderStatCards(data);
+    if (!month) {
+        // First load owns the stat cards, recent transactions, and seeds the
+        // month dropdown. Subsequent month switches only refresh the chart.
+        renderStatCards(data);
+        renderTransactions(data.recent_transactions);
+        populateBreakdownMonths(data.available_months, data.breakdown_month);
+    }
     renderExpenseChart(data);
-    renderTransactions(data.recent_transactions);
+}
+
+function populateBreakdownMonths(months, selected) {
+    const sel = document.getElementById('breakdownMonth');
+    if (!sel || !Array.isArray(months)) return;
+    sel.replaceChildren();
+    months.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.value;
+        opt.textContent = m.label;
+        if (m.value === selected) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    selectedBreakdownMonth = selected || '';
 }
 
 function fmt(amount) {
@@ -39,7 +81,10 @@ function renderExpenseChart(data) {
     const legendEl = document.getElementById('chartLegend');
     const savedVal = document.getElementById('chartSavedValue');
 
-    if (savedVal) savedVal.textContent = fmt(data.monthly_savings);
+    // Centre label reflects the selected month, not the current one — when the
+    // user picks April from the dropdown the donut and total must agree.
+    const breakdownTotal = data.breakdown_total != null ? data.breakdown_total : data.monthly_expenses;
+    if (savedVal) savedVal.textContent = fmt(breakdownTotal);
 
     if (!breakdown || !breakdown.length) {
         legendEl.innerHTML = '<div class="text-muted small text-center py-2" style="grid-column:1/-1">No transactions this month.</div>';
@@ -56,9 +101,9 @@ function renderExpenseChart(data) {
         return;
     }
 
-    const labels = breakdown.map(e => typeConf(e.type).label);
+    const labels = breakdown.map(e => categoryConf(e.category).label);
     const amounts = breakdown.map(e => Math.abs(e.amount));
-    const colors = breakdown.map(e => typeConf(e.type).color);
+    const colors = breakdown.map(e => categoryConf(e.category).color);
 
     const chartData = {
         labels,
@@ -105,12 +150,18 @@ function renderExpenseChart(data) {
         });
     }
 
-    legendEl.innerHTML = '';
+    legendEl.replaceChildren();
     breakdown.forEach(e => {
-        const conf = typeConf(e.type);
+        const conf = categoryConf(e.category);
         const item = document.createElement('div');
         item.className = 'legend-item';
-        item.innerHTML = `<span class="legend-dot" style="background:${conf.color}"></span>${conf.label}<span class="legend-amount">${fmt(Math.abs(e.amount))}</span>`;
+        const dot = document.createElement('span');
+        dot.className = 'legend-dot';
+        dot.style.background = conf.color;
+        const amt = document.createElement('span');
+        amt.className = 'legend-amount';
+        amt.textContent = fmt(Math.abs(e.amount));
+        item.append(dot, document.createTextNode(conf.label), amt);
         legendEl.appendChild(item);
     });
 }
@@ -171,6 +222,14 @@ function renderTransactions(transactions) {
 }
 
 loadDashboardSummary();
+
+const breakdownMonthSelect = document.getElementById('breakdownMonth');
+if (breakdownMonthSelect) {
+    breakdownMonthSelect.addEventListener('change', (e) => {
+        selectedBreakdownMonth = e.target.value;
+        loadDashboardSummary(selectedBreakdownMonth);
+    });
+}
 
 // ─── Sidebar Toggle (mobile) ────────────────────────────────
 const sidebar = document.getElementById('sidebar');
