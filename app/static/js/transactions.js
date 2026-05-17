@@ -136,7 +136,7 @@ function resetModalForAdd() {
 function openModalForEdit(row) {
     txnEditId.value = String(row.id);
     txnModalLabel.textContent = "Edit transaction";
-    txnAmount.value = row.amount;
+    txnAmount.value = Math.abs(Number(row.amount || 0));
     txnType.value = row.transaction_type || "savings";
     txnCategory.value = row.category || "";
     txnDescription.value = row.description || "";
@@ -175,7 +175,11 @@ function renderRows(tbody, transactions, showGroup) {
     tbody.innerHTML = "";
     transactions.forEach((row) => {
         const amt = Number(row.amount);
-        const amtClass = amt < 0 ? "txn-amount-neg" : "txn-amount-pos";
+        const isExpense = (row.transaction_type || "").toLowerCase() === "expense";
+        const amtClass = isExpense ? "txn-amount-neg" : "txn-amount-pos";
+        const amountText = isExpense
+            ? `−${currency(Math.abs(amt))}`
+            : currency(amt);
         const groupCell = showGroup
             ? `<td><span class="txn-group-pill">${escapeHtml(row.group_name || "—")}</span></td>`
             : "";
@@ -186,7 +190,7 @@ function renderRows(tbody, transactions, showGroup) {
             <td><span class="txn-type-pill ${typeClass(row.transaction_type)}">${row.transaction_type || "—"}</span></td>
             <td>${formatCategoryCell(row)}</td>
             <td>${escapeHtml(row.description || "—")}</td>
-            <td class="text-end ${amtClass}">${currency(amt)}</td>
+            <td class="text-end ${amtClass}">${amountText}</td>
             <td class="text-end">
                 <button type="button" class="btn btn-sm btn-outline-light me-1 txn-edit" data-id="${row.id}">Edit</button>
                 <button type="button" class="btn btn-sm btn-outline-danger txn-del" data-id="${row.id}">Delete</button>
