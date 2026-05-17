@@ -254,3 +254,56 @@
 @media (max-width: 575.98px) {
     .grp-stats { grid-template-columns: 1fr 1fr; }
 }
+
+/* Net balance accent: green when positive, red when negative. */
+.grp-stat.accent.positive .grp-stat-value {
+    color: var(--accent-mint, #2dd4a8);
+}
+.grp-stat.accent.negative .grp-stat-value {
+    color: #ef4444;
+}
+
+/* Activity chart + expense donut side by side on wide screens. */
+.grp-chart-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 20px 16px;
+}
+@media (min-width: 900px) {
+    .grp-chart-row {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.grp-breakdown-wrap {
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md, 12px);
+    padding: 12px 14px;
+    background: var(--surface-2, rgba(255, 255, 255, 0.02));
+}
+.grp-breakdown-inner {
+    position: relative;
+    height: 200px;
+}
+.grp-breakdown-inner canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+.grp-breakdown-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Recent group transactions list. */
+.grp-recent-wrap {
+    padding: 0 20px 20px;
+}
+.grp-recent-wrap .grp-chart-head {
+    margin-bottom: 8px;
+}
