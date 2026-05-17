@@ -27,15 +27,21 @@
                 <i class="bi bi-arrow-clockwise"></i>
                 <span>Loading…</span>
             </div>
-            <div class="lb-updated lb-server-time" id="lbServerTime" aria-live="polite">
-                <i class="bi bi-clock"></i>
-                <span>Loading…</span>
-            </div>
         </div>
     </section>
 
+    <aside class="lb-ajax-time-banner anim-in anim-delay-1" id="lbServerTime" aria-live="polite">
+        <div class="lb-ajax-time-icon" aria-hidden="true">
+            <i class="bi bi-clock-history"></i>
+        </div>
+        <div class="lb-ajax-time-body">
+            <span class="lb-ajax-time-label">Server time <span class="lb-ajax-time-tag">Ajax</span></span>
+            <strong class="lb-ajax-time-value" id="lbServerTimeValue">Loading…</strong>
+        </div>
+    </aside>
+
     <!-- Filter strip: timeframe + group selector -->
-    <section class="lb-filter-strip anim-in anim-delay-1">
+    <section class="lb-filter-strip anim-in anim-delay-2">
         <div class="lb-window-switcher" role="tablist" aria-label="Timeframe">
             <button class="lb-window-tab active" data-window="all" type="button">All time</button>
             <button class="lb-window-tab" data-window="month" type="button">This month</button>
