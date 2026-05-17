@@ -3,7 +3,7 @@ from datetime import datetime, UTC
 from enum import Enum
 from sqlalchemy import CheckConstraint
 from flask_login import UserMixin
-from sqlalchemy.orm import foreign, relationship
+from sqlalchemy.orm import relationship
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
