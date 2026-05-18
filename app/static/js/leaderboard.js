@@ -254,26 +254,55 @@ function updateLastFetchedLabel() {
     else lbUpdatedLabel.textContent = `Updated ${Math.floor(seconds / 60)}m ago`;
 }
 
-// ─── Server time (Ajax) ────────────────────────────────────
+// ─── Server time (Ajax + live tick) ────────────────────────
+
+const UTC_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+let serverTimeAnchorMs = null;
+let serverTimeFetchedAt = null;
+
+function formatUtcClock(date) {
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(date.getUTCDate())} ${UTC_MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}, ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())} UTC`;
+}
+
+function renderServerTimeTick() {
+    if (!lbServerTimeValue || serverTimeAnchorMs == null || serverTimeFetchedAt == null) return;
+    const elapsed = Date.now() - serverTimeFetchedAt;
+    lbServerTimeValue.textContent = formatUtcClock(new Date(serverTimeAnchorMs + elapsed));
+}
+
+function setServerTimeUnavailable() {
+    serverTimeAnchorMs = null;
+    serverTimeFetchedAt = null;
+    if (!lbServerTimeValue) return;
+    lbServerTimeValue.textContent = "Time unavailable";
+    lbServerTime?.classList.remove("lb-ajax-time-banner--live");
+    lbServerTime?.classList.add("lb-ajax-time-banner--error");
+}
 
 async function fetchServerTime() {
     if (!lbServerTimeValue) return;
     try {
         const res = await fetch("/api/private/ajax_current_time");
         if (!res.ok) {
-            lbServerTimeValue.textContent = "Time unavailable";
-            lbServerTime?.classList.remove("lb-ajax-time-banner--live");
-            lbServerTime?.classList.add("lb-ajax-time-banner--error");
+            setServerTimeUnavailable();
             return;
         }
         const data = await res.json();
-        lbServerTimeValue.textContent = data.formatted || data.iso || "—";
+        const parsed = data.iso ? new Date(data.iso) : null;
+        if (!parsed || Number.isNaN(parsed.getTime())) {
+            serverTimeAnchorMs = null;
+            serverTimeFetchedAt = null;
+            lbServerTimeValue.textContent = data.formatted || "—";
+        } else {
+            serverTimeAnchorMs = parsed.getTime();
+            serverTimeFetchedAt = Date.now();
+            renderServerTimeTick();
+        }
         lbServerTime?.classList.add("lb-ajax-time-banner--live");
         lbServerTime?.classList.remove("lb-ajax-time-banner--error");
     } catch (_) {
-        lbServerTimeValue.textContent = "Time unavailable";
-        lbServerTime?.classList.remove("lb-ajax-time-banner--live");
-        lbServerTime?.classList.add("lb-ajax-time-banner--error");
+        setServerTimeUnavailable();
     }
 }
 
@@ -395,6 +424,7 @@ async function backgroundRefresh() {
 
 setInterval(backgroundRefresh, REFRESH_MS);
 setInterval(updateLastFetchedLabel, 10 * 1000);
+setInterval(renderServerTimeTick, 1000);
 setInterval(fetchServerTime, 30 * 1000);
 document.addEventListener("visibilitychange", () => {
     if (!document.hidden) {
